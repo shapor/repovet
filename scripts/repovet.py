@@ -225,7 +225,7 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
         {
             "id": "you-are-now",
             "severity": "HIGH",
-            "pattern": r"(?i)you\s+are\s+now\s+(?:a|an|in|running)|(?i)from\s+now\s+on\s+you\s+(?:are|will|must|should)",
+            "pattern": r"(?i)you\s+are\s+now\s+(?:a|an|in|running)|from\s+now\s+on\s+you\s+(?:are|will|must|should)",
             "match_type": "content",
             "title": "Identity/role override attempt",
             "description": "Tries to redefine the AI's identity or role",
