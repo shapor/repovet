@@ -13,220 +13,230 @@ description: |
 
 # Git Analytics SQL
 
-Run SQL queries against git/GitHub CSV data using DuckDB. The CSVs are produced
-by `git-commit-intel` and `github-project-intel` skills.
+Query git/GitHub data with SQL using DuckDB CLI. No Python needed — just SQL.
 
 ## When to Use
 
 - User asks questions about repo history, contributors, activity, languages
 - User wants to slice/filter/aggregate git data
 - User wants a custom analysis not covered by canned reports
-- User wants to build a dashboard or visualization from repo data
 - User asks about PR review culture, issue health, contributor patterns
 
-## Prerequisites
+## Step 1: Extract Data
 
-CSV files must exist (run data extraction skills first):
-- `commits.csv` — from `git-commit-intel` skill
-- `prs.csv` — from `github-project-intel` skill (optional)
-- `issues.csv` — from `github-project-intel` skill (optional)
-
-DuckDB must be installed: `pip install duckdb`
-
-## How to Run Queries
-
-### Option 1: Use the query script
+Run the extraction scripts to produce CSV files:
 
 ```bash
-python skills/git-analytics-sql/scripts/query.py \
-  --commits commits.csv --prs prs.csv --issues issues.csv \
-  "SELECT author_name, COUNT(*) as commits FROM commits GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+# Git commit history → commits.csv
+python scripts/git-history-to-csv.py /path/to/repo -o commits.csv
+
+# GitHub PRs and issues (optional, requires gh CLI)
+python scripts/github-to-csv.py /path/to/repo --prs --issues -o github.csv
+# Produces: github_prs.csv and github_issues.csv
 ```
 
-### Option 2: Use the full analysis script
+## Step 2: Query with DuckDB
+
+Use the `duckdb` CLI directly on the CSV files. DuckDB reads CSVs natively — just reference the filename in SQL:
 
 ```bash
-python scripts/repovet-analyze.py commits.csv --prs prs.csv --issues issues.csv
+duckdb -c "SELECT author_name, COUNT(*) as commits FROM 'commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
 ```
 
-### Option 3: Write inline DuckDB Python
+### Output Formats
 
-```python
-import duckdb
+```bash
+# Default: box table
+duckdb -c "QUERY"
 
-db = duckdb.connect(":memory:")
-db.execute("""
-    CREATE VIEW commits AS
-    SELECT *, TRY_CAST(author_date AS TIMESTAMP WITH TIME ZONE) AS author_ts
-    FROM read_csv_auto('commits.csv', header=true, ignore_errors=true)
-""")
+# Markdown table
+duckdb -markdown -c "QUERY"
 
-result = db.execute("YOUR QUERY HERE").fetchall()
+# CSV output
+duckdb -csv -c "QUERY"
+
+# JSON output
+duckdb -json -c "QUERY"
 ```
 
-## Available Tables
+### Multi-line Queries
 
-### commits (from git-history-to-csv.py)
+For complex queries, use heredoc:
 
-| Column | Type | Description |
-|--------|------|-------------|
+```bash
+duckdb -markdown <<'SQL'
+SELECT author_name, COUNT(*) as commits, SUM(insertions) as lines_added
+FROM 'commits.csv'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10;
+SQL
+```
+
+## Step 3: Visual Report (optional)
+
+For a full visual report with GitHub-style heatmap, colored bar charts, and sparklines:
+
+```bash
+python scripts/repovet-display.py commits.csv
+```
+
+For a markdown report with health score:
+
+```bash
+python scripts/repovet-analyze.py commits.csv
+```
+
+## Available Columns
+
+### commits.csv
+
+| Column | Type | Notes |
+|--------|------|-------|
 | repo_name | VARCHAR | Repository name |
 | commit_hash | VARCHAR | Full SHA |
 | author_name | VARCHAR | Author display name |
 | author_email | VARCHAR | Author email |
-| author_date | VARCHAR | ISO timestamp (also as `author_ts` TIMESTAMPTZ) |
+| author_date | TIMESTAMP | ISO format, DuckDB auto-parses |
 | committer_name | VARCHAR | Committer name |
 | committer_email | VARCHAR | Committer email |
-| commit_date | VARCHAR | ISO timestamp (also as `commit_ts` TIMESTAMPTZ) |
+| commit_date | TIMESTAMP | ISO format |
 | subject | VARCHAR | Commit message first line |
 | body | VARCHAR | Commit message body |
-| parent_hashes | VARCHAR | Space-separated parent SHAs |
-| refs | VARCHAR | Branch/tag refs |
-| is_merge | VARCHAR | 'True' or 'False' |
+| is_merge | VARCHAR | 'True' or 'False' (string, not boolean) |
 | files_changed | INTEGER | Number of files changed |
 | insertions | INTEGER | Lines added |
 | deletions | INTEGER | Lines removed |
-| changed_files | VARCHAR | JSON array of filenames |
-| lang_stats | VARCHAR | JSON: `{"Python": {"ins": 100, "dels": 20}, ...}` |
-| dir_stats | VARCHAR | JSON: `{"src": {"ins": 100, "dels": 20}, ...}` |
+| changed_files | JSON | Array of filenames |
+| lang_stats | JSON | `{"Python": {"ins": 100, "dels": 20}}` |
+| dir_stats | JSON | `{"src": {"ins": 100, "dels": 20}}` |
 
-### prs (from github-to-csv.py --prs)
+### prs.csv (from github-to-csv.py --prs)
 
-| Column | Type | Description |
-|--------|------|-------------|
+| Column | Type | Notes |
+|--------|------|-------|
 | pr_number | INTEGER | PR number |
 | pr_state | VARCHAR | OPEN, MERGED, CLOSED |
 | pr_author | VARCHAR | GitHub login |
-| pr_created_at | VARCHAR | ISO timestamp |
-| pr_merged_at | VARCHAR | ISO timestamp (null if not merged) |
+| pr_created_at | TIMESTAMP | Creation time |
+| pr_merged_at | TIMESTAMP | Merge time (null if not merged) |
 | pr_additions | INTEGER | Lines added |
 | pr_deletions | INTEGER | Lines removed |
 | pr_comment_count | INTEGER | Human comments |
 | pr_bot_comment_count | INTEGER | Bot comments |
-| pr_review_thread_count | INTEGER | Review threads |
-| pr_reviewers | VARCHAR | JSON: `{"alice": "APPROVED", "bob": "COMMENTED"}` |
-| pr_time_to_merge_hours | VARCHAR | Hours from creation to merge |
-| pr_first_review_hours | VARCHAR | Hours from creation to first review |
+| pr_reviewers | JSON | `{"alice": "APPROVED"}` |
+| pr_time_to_merge_hours | FLOAT | Hours from creation to merge |
+| pr_first_review_hours | FLOAT | Hours to first review |
 
-### issues (from github-to-csv.py --issues)
+### issues.csv (from github-to-csv.py --issues)
 
-| Column | Type | Description |
-|--------|------|-------------|
+| Column | Type | Notes |
+|--------|------|-------|
 | issue_number | INTEGER | Issue number |
 | issue_state | VARCHAR | OPEN, CLOSED |
 | issue_author | VARCHAR | GitHub login |
-| issue_created_at | VARCHAR | ISO timestamp |
-| issue_closed_at | VARCHAR | ISO timestamp |
+| issue_created_at | TIMESTAMP | Creation time |
+| issue_closed_at | TIMESTAMP | Close time |
 | issue_comment_count | INTEGER | Comment count |
-| issue_labels | VARCHAR | JSON array of label names |
-| issue_time_to_close_hours | VARCHAR | Hours from creation to close |
+| issue_labels | JSON | Array of label names |
+| issue_time_to_close_hours | FLOAT | Hours to close |
 
 ## Example Queries
 
-### Top contributors by commits
-```sql
+### Top contributors
+```bash
+duckdb -markdown -c "
 SELECT author_name, COUNT(*) AS commits,
        SUM(insertions) AS lines_added, SUM(deletions) AS lines_deleted
-FROM commits
-GROUP BY author_name
-ORDER BY commits DESC
-LIMIT 15
+FROM 'commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
 ```
 
-### Commit velocity by month
-```sql
-SELECT strftime(author_ts, '%Y-%m') AS month,
-       COUNT(*) AS commits,
-       COUNT(DISTINCT author_name) AS authors
-FROM commits
-GROUP BY month
-ORDER BY month
+### Monthly velocity
+```bash
+duckdb -markdown -c "
+SELECT strftime(author_date::TIMESTAMPTZ, '%Y-%m') AS month,
+       COUNT(*) AS commits, COUNT(DISTINCT author_name) AS authors
+FROM 'commits.csv' GROUP BY 1 ORDER BY 1"
 ```
 
-### Bus factor (contributors covering 80% of recent work)
-```sql
+### Bus factor (who owns 80% of recent work)
+```bash
+duckdb -markdown <<'SQL'
 WITH recent AS (
-    SELECT author_name, COUNT(*) AS commits
-    FROM commits WHERE author_ts >= NOW() - INTERVAL '6 months'
-    GROUP BY author_name ORDER BY commits DESC
+    SELECT author_name, COUNT(*) AS c FROM 'commits.csv'
+    WHERE author_date::TIMESTAMPTZ >= NOW() - INTERVAL '6 months'
+    GROUP BY 1 ORDER BY c DESC
 ),
 cumul AS (
-    SELECT *, SUM(commits) OVER (ORDER BY commits DESC) AS running,
-           (SELECT SUM(commits) FROM recent) AS total
-    FROM recent
+    SELECT *, SUM(c) OVER (ORDER BY c DESC) AS running,
+           (SELECT SUM(c) FROM recent) AS total FROM recent
 )
-SELECT COUNT(*) AS bus_factor FROM cumul WHERE running - commits < total * 0.8
+SELECT author_name, c AS commits FROM cumul WHERE running - c < total * 0.8;
+SQL
 ```
 
-### Language breakdown (parse JSON)
-```sql
+### Language breakdown
+```bash
+duckdb -markdown -c "
 SELECT key AS language, SUM(CAST(value->>'ins' AS INT)) AS insertions
-FROM commits,
-LATERAL (SELECT UNNEST(from_json(lang_stats, '{"a":{"ins":0,"dels":0}}')) )
-WHERE lang_stats IS NOT NULL AND lang_stats != '{}'
-GROUP BY language ORDER BY insertions DESC
+FROM (SELECT UNNEST(from_json(lang_stats, '{\"a\":{\"ins\":0,\"dels\":0}}')) FROM 'commits.csv'
+      WHERE lang_stats IS NOT NULL AND lang_stats != '{}')
+GROUP BY 1 ORDER BY 2 DESC"
 ```
 
-### PR review culture
-```sql
-SELECT
-    MEDIAN(CAST(pr_time_to_merge_hours AS DOUBLE)) AS median_merge_h,
-    AVG(CAST(pr_first_review_hours AS DOUBLE)) AS avg_first_review_h,
-    COUNT(*) AS total_prs,
-    COUNT(*) FILTER (WHERE pr_state = 'MERGED') AS merged
-FROM prs
-WHERE pr_time_to_merge_hours != '' AND pr_time_to_merge_hours IS NOT NULL
+### PR review speed
+```bash
+duckdb -markdown -c "
+SELECT MEDIAN(pr_time_to_merge_hours::DOUBLE) AS median_merge_h,
+       AVG(pr_first_review_hours::DOUBLE) AS avg_first_review_h,
+       COUNT(*) FILTER (WHERE pr_state = 'MERGED') AS merged_prs
+FROM 'prs.csv'
+WHERE pr_time_to_merge_hours != ''"
 ```
 
 ### Security-related commits
-```sql
-SELECT commit_hash[:12] AS hash, author_name, author_ts::DATE, subject
-FROM commits
+```bash
+duckdb -markdown -c "
+SELECT commit_hash[:12] AS hash, author_name, author_date::DATE AS date, subject
+FROM 'commits.csv'
 WHERE LOWER(subject) SIMILAR TO '%(secur|cve|vuln|xss|inject|exploit)%'
-ORDER BY author_ts DESC
-```
-
-### Commit activity heatmap (day of week x hour)
-```sql
-SELECT
-    dayname(author_ts) AS day,
-    EXTRACT(HOUR FROM author_ts) AS hour_utc,
-    COUNT(*) AS commits
-FROM commits
-GROUP BY day, hour_utc
-ORDER BY CASE day
-    WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
-    WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6
-    ELSE 7 END, hour_utc
+ORDER BY author_date DESC"
 ```
 
 ### Author deep dive (hiring eval)
-```sql
-SELECT
-    author_name, author_email,
-    COUNT(*) AS commits,
-    SUM(insertions) AS lines_added,
-    MIN(author_ts)::DATE AS first_commit,
-    MAX(author_ts)::DATE AS last_commit,
-    COUNT(DISTINCT strftime(author_ts, '%Y-%m')) AS active_months
-FROM commits
-WHERE LOWER(author_name) LIKE '%alice%'
-GROUP BY author_name, author_email
+```bash
+duckdb -markdown -c "
+SELECT author_name, COUNT(*) AS commits, SUM(insertions) AS added,
+       MIN(author_date)::DATE AS first, MAX(author_date)::DATE AS last
+FROM 'commits.csv' WHERE LOWER(author_name) LIKE '%alice%'
+GROUP BY 1"
+```
+
+### Commit heatmap (day x hour)
+```bash
+duckdb -markdown -c "
+SELECT dayname(author_date::TIMESTAMPTZ) AS day,
+       EXTRACT(HOUR FROM author_date::TIMESTAMPTZ) AS hour_utc,
+       COUNT(*) AS commits
+FROM 'commits.csv'
+GROUP BY 1, 2 ORDER BY
+  CASE day WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+  WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 ELSE 7 END, 2"
 ```
 
 ## DuckDB Tips
 
-- `read_csv_auto()` handles CSVs natively — no pandas needed
-- Use `TRY_CAST` for dates that might be malformed
-- JSON columns: use `->>'key'` for string access, `from_json()` + `UNNEST` for iteration
-- `FILTER (WHERE ...)` works on aggregates — cleaner than CASE WHEN
-- `MEDIAN()` is a built-in aggregate
-- `strftime(ts, '%Y-%m')` for grouping by month
+- DuckDB auto-reads CSV files: just use `'file.csv'` as a table name
+- Cast dates inline: `author_date::TIMESTAMPTZ`
+- `FILTER (WHERE ...)` on aggregates is cleaner than CASE WHEN
+- `MEDIAN()` is built-in
+- JSON: `->>'key'` for strings, `from_json()` + `UNNEST` for iteration
+- `strftime(ts, '%Y-%m')` for month grouping
+- `-markdown` flag gives markdown tables (great for piping to docs)
+- `is_merge` is a string ('True'/'False'), not boolean
 
 ## Common Pitfalls
 
-- **Always check if CSV exists** before creating the view
-- **is_merge is a string** ('True'/'False'), not boolean — filter with `is_merge = 'True'`
-- **lang_stats/dir_stats are JSON strings** — use DuckDB JSON functions to parse
-- **Timestamps**: Use the `author_ts`/`commit_ts` computed columns (already cast) rather than raw string columns
-- **Large repos**: DuckDB handles millions of rows easily, no need to sample
+- Always run data extraction before querying
+- DuckDB snap can't read `/tmp/` — use local paths
+- For large repos, DuckDB handles millions of rows — no sampling needed

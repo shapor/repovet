@@ -105,7 +105,26 @@ def main():
             json.dump(rows, sys.stdout, indent=2, default=str)
             print()
         else:
-            print(result.fetch_df().to_string() if hasattr(result, 'fetch_df') else result.fetchall())
+            # Default: formatted table output (no pandas needed)
+            cols = [desc[0] for desc in result.description]
+            rows = result.fetchall()
+            if not rows:
+                print("(no results)")
+                return
+            # Calculate column widths
+            widths = [len(c) for c in cols]
+            str_rows = []
+            for row in rows:
+                str_row = [str(v) if v is not None else "" for v in row]
+                str_rows.append(str_row)
+                for i, v in enumerate(str_row):
+                    widths[i] = max(widths[i], len(v))
+            # Print header
+            header = "  ".join(c.ljust(widths[i]) for i, c in enumerate(cols))
+            print(header)
+            print("  ".join("-" * w for w in widths))
+            for str_row in str_rows:
+                print("  ".join(v.ljust(widths[i]) for i, v in enumerate(str_row)))
     except Exception as e:
         print(f"Query error: {e}", file=sys.stderr)
         sys.exit(1)
