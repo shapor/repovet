@@ -61,8 +61,8 @@ Scans recursively because users can `cd` into any subdirectory and launch an age
 | `scripts/repovet.py` | 1710 | Full trust assessment CLI. Scans remote repos via GitHub API without cloning. Produces scored report with evidence. |
 | `scripts/repovet-analyze.py` | 836 | DuckDB-powered analytics engine. SQL queries over commit, PR, and issue data. Author deep-dives, bus factor, velocity trends. |
 | `scripts/repovet-config-discover.py` | 527 | Finds all agent config files in a repo, extracts executables and permissions. |
-| `scripts/git-history-to-csv.py` | — | Git commits, authors, language stats, PR enrichment to CSV. |
-| `scripts/github-to-csv.py` | — | PRs, issues, reviews, bot activity via GraphQL to CSV. |
+| `scripts/git-history-to-csv.py` | 505 | Git commits, authors, language stats, PR enrichment to CSV. |
+| `scripts/github-to-csv.py` | 491 | PRs, issues, reviews, bot activity via GraphQL to CSV. |
 
 **Skills** (15 total):
 
