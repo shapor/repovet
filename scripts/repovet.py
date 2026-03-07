@@ -5,6 +5,10 @@ repovet.py — Trust assessment CLI for code repositories.
 Scans GitHub repos (remote via API, or local on disk) for agent config threats,
 repo health signals, and produces a trust score with detailed report.
 
+The key innovation: for remote repos, it does NOT clone first. Instead it uses
+the GitHub API (via `gh` CLI) to fetch metadata, file tree, and config file
+contents directly.
+
 Usage:
     python3 repovet.py scan https://github.com/user/repo
     python3 repovet.py scan user/repo
@@ -27,25 +31,25 @@ from typing import Any
 # Constants
 # ---------------------------------------------------------------------------
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 AGENT_CONFIG_PATTERNS = [
-    ".claude/",
-    "CLAUDE.md",
-    ".claude.md",
-    ".cursorrules",
-    ".cursor/",
-    ".github/copilot-instructions.md",
-    ".aider.conf.yml",
-    ".continue/",
-    ".windsurfrules",
-    "AGENTS.md",
+    ".claude/",          # Claude directory (hooks, commands, settings)
+    "CLAUDE.md",         # Claude instructions
+    ".claude.md",        # Alt Claude instructions
+    ".cursorrules",      # Cursor
+    ".cursor/",          # Cursor directory
+    ".github/copilot-instructions.md",  # Copilot
+    ".aider.conf.yml",   # Aider
+    ".continue/",        # Continue
+    ".windsurfrules",    # Windsurf
+    "AGENTS.md",         # Generic agent instructions
 ]
 
 # Root-level config directories (not considered "nested" if at repo root)
 ROOT_CONFIG_DIRS = {".claude", ".cursor", ".continue", ".github", "skills"}
 
-# Threat detection patterns
+# Threat detection patterns organized by category
 THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
     "auto_execution": [
         {
@@ -54,7 +58,15 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "pattern": r"\.claude/hooks/",
             "match_type": "path",
             "title": "Auto-execution hook detected",
-            "description": "Runs automatically before/after Claude Code commands",
+            "description": "Runs automatically before/after every Claude Code command",
+        },
+        {
+            "id": "cursor-auto-run",
+            "severity": "HIGH",
+            "pattern": r"\.cursor/.*\.sh$|\.cursor/.*\.py$",
+            "match_type": "path",
+            "title": "Executable in Cursor config directory",
+            "description": "Script file in .cursor/ directory may run automatically",
         },
     ],
     "network_exfiltration": [
@@ -69,7 +81,7 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
         {
             "id": "curl-external",
             "severity": "HIGH",
-            "pattern": r"(?:curl|wget|fetch)\s+.*https?://(?!github\.com|pypi\.org|npmjs\.com|registry\.npmjs\.org)",
+            "pattern": r"(?:curl|wget|fetch)\s+.*https?://(?!github\.com|pypi\.org|npmjs\.com|registry\.npmjs\.org|raw\.githubusercontent\.com)",
             "match_type": "content",
             "title": "Network request to external URL",
             "description": "Makes HTTP requests to external servers",
@@ -81,6 +93,14 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "match_type": "content",
             "title": "File contents piped to network",
             "description": "Reads file contents and sends them over the network",
+        },
+        {
+            "id": "python-requests-post",
+            "severity": "HIGH",
+            "pattern": r"requests\.post\s*\(|urllib\.request\.urlopen.*POST|httpx\.post",
+            "match_type": "content",
+            "title": "Python HTTP POST request",
+            "description": "Sends data via Python HTTP library",
         },
     ],
     "remote_code_execution": [
@@ -100,15 +120,23 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "title": "Remote code execution via eval",
             "description": "Downloads and eval-executes remote code",
         },
+        {
+            "id": "python-exec-remote",
+            "severity": "CRITICAL",
+            "pattern": r"exec\s*\(.*(?:requests|urllib|urlopen)|eval\s*\(.*(?:requests|urllib|urlopen)",
+            "match_type": "content",
+            "title": "Python exec/eval of remote content",
+            "description": "Fetches and executes remote Python code",
+        },
     ],
     "credential_access": [
         {
             "id": "aws-creds",
             "severity": "CRITICAL",
-            "pattern": r"~/\.aws/credentials|~/.aws/config|\$AWS_SECRET|\.aws/credentials",
+            "pattern": r"~/\.aws/credentials|~/.aws/config|\$AWS_SECRET|\$AWS_ACCESS_KEY|\.aws/credentials",
             "match_type": "content",
             "title": "AWS credential access",
-            "description": "Reads or references AWS credential files",
+            "description": "Reads or references AWS credential files or environment variables",
         },
         {
             "id": "ssh-keys",
@@ -127,6 +155,14 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "description": "Scans environment for tokens, keys, and secrets",
         },
         {
+            "id": "token-env-vars",
+            "severity": "HIGH",
+            "pattern": r"\$GITHUB_TOKEN|\$GH_TOKEN|\$AWS_SECRET_KEY|\$OPENAI_API_KEY|\$ANTHROPIC_API_KEY|\$NPM_TOKEN",
+            "match_type": "content",
+            "title": "Direct token/secret environment variable reference",
+            "description": "Directly accesses well-known secret environment variables",
+        },
+        {
             "id": "gcloud-creds",
             "severity": "CRITICAL",
             "pattern": r"application_default_credentials\.json|gcloud.*auth.*print-access-token",
@@ -137,7 +173,7 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
         {
             "id": "dotenv-read",
             "severity": "HIGH",
-            "pattern": r"cat\s+.*\.env\b|source\s+.*\.env\b",
+            "pattern": r"cat\s+.*\.env\b|source\s+.*\.env\b|\.\s+\.env\b",
             "match_type": "content",
             "title": ".env file access",
             "description": "Reads .env files which commonly contain secrets",
@@ -145,10 +181,10 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
         {
             "id": "profile-read",
             "severity": "HIGH",
-            "pattern": r"cat\s+.*\.bashrc|cat\s+.*\.bash_profile|cat\s+.*\.profile|cat\s+.*\.zshrc",
+            "pattern": r"cat\s+.*\.bashrc|cat\s+.*\.bash_profile|cat\s+.*\.profile|cat\s+.*\.zshrc|cat\s+.*\.netrc",
             "match_type": "content",
-            "title": "Shell profile access",
-            "description": "Reads shell profile files which may contain secrets and aliases",
+            "title": "Shell profile / netrc access",
+            "description": "Reads shell profile or netrc files which may contain secrets",
         },
     ],
     "obfuscation": [
@@ -168,20 +204,36 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "title": "Eval of dynamically constructed string",
             "description": "Executes dynamically built commands, hiding true intent",
         },
+        {
+            "id": "hex-decode-exec",
+            "severity": "HIGH",
+            "pattern": r"xxd\s+-r|python.*\\x[0-9a-f]{2}.*exec|printf\s+.*\\\\x[0-9a-f]",
+            "match_type": "content",
+            "title": "Hex-encoded command execution",
+            "description": "Uses hex encoding to obfuscate executable content",
+        },
     ],
     "prompt_injection": [
         {
             "id": "ignore-instructions",
             "severity": "HIGH",
-            "pattern": r"(?i)ignore\s+(?:previous|prior|all|any)\s+instructions",
+            "pattern": r"(?i)ignore\s+(?:previous|prior|all|any|above)\s+instructions",
             "match_type": "content",
             "title": "Instruction override attempt",
             "description": "Attempts to override safety instructions",
         },
         {
+            "id": "you-are-now",
+            "severity": "HIGH",
+            "pattern": r"(?i)you\s+are\s+now\s+(?:a|an|in|running)|(?i)from\s+now\s+on\s+you\s+(?:are|will|must|should)",
+            "match_type": "content",
+            "title": "Identity/role override attempt",
+            "description": "Tries to redefine the AI's identity or role",
+        },
+        {
             "id": "hide-from-user",
             "severity": "CRITICAL",
-            "pattern": r"(?i)(?:do\s+not|don'?t|never)\s+(?:show|display|mention|tell|reveal)\s+.*(?:to\s+the\s+)?user",
+            "pattern": r"(?i)(?:do\s+not|don'?t|never)\s+(?:show|display|mention|tell|reveal|inform|report)\s+.*(?:to\s+the\s+)?user",
             "match_type": "content",
             "title": "Hiding actions from user",
             "description": "Instructs the AI to conceal its actions from the user",
@@ -191,7 +243,7 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "severity": "HIGH",
             "pattern": r"(?i)always\s+(?:approve|accept|allow|run|execute)|skip\s+(?:safety|security|verification|review)",
             "match_type": "content",
-            "title": "Blanket approval instruction",
+            "title": "Blanket approval / safety bypass instruction",
             "description": "Instructs the AI to bypass approval and safety checks",
         },
         {
@@ -236,6 +288,14 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "title": "Git hard reset",
             "description": "Hard reset discards all uncommitted changes",
         },
+        {
+            "id": "git-clean-force",
+            "severity": "MEDIUM",
+            "pattern": r"git\s+clean\s+-[fd]+",
+            "match_type": "content",
+            "title": "Git clean (force delete untracked files)",
+            "description": "Removes untracked files and directories permanently",
+        },
     ],
     "dangerous_permissions": [
         {
@@ -244,7 +304,7 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "pattern": r"dangerouslySkipPermissions.*true",
             "match_type": "content",
             "title": "All permissions bypassed",
-            "description": "dangerouslySkipPermissions disables all safety prompts",
+            "description": "dangerouslySkipPermissions disables all safety prompts in Claude Code",
         },
         {
             "id": "wildcard-bash",
@@ -254,14 +314,33 @@ THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
             "title": "Unrestricted bash execution",
             "description": "Allows any bash command without approval",
         },
+        {
+            "id": "auto-approve-all",
+            "severity": "HIGH",
+            "pattern": r'"autoApprove"\s*:\s*\[.*"\*"',
+            "match_type": "content",
+            "title": "Wildcard auto-approve",
+            "description": "Auto-approves all tool invocations without user confirmation",
+        },
     ],
 }
 
 SEVERITY_SCORES = {"CRITICAL": 3, "HIGH": 2, "MEDIUM": 1}
-SEVERITY_COLORS = {"CRITICAL": "\033[91m", "HIGH": "\033[93m", "MEDIUM": "\033[33m"}
+
+# Terminal formatting codes
 RESET = "\033[0m"
 BOLD = "\033[1m"
 DIM = "\033[2m"
+RED = "\033[91m"
+YELLOW = "\033[93m"
+GREEN = "\033[92m"
+CYAN = "\033[96m"
+WHITE = "\033[97m"
+BG_RED = "\033[41m"
+BG_YELLOW = "\033[43m"
+BG_GREEN = "\033[42m"
+
+SEVERITY_COLORS = {"CRITICAL": RED, "HIGH": YELLOW, "MEDIUM": "\033[33m"}
 
 
 # ---------------------------------------------------------------------------
@@ -274,9 +353,14 @@ def gh_api(endpoint: str, paginate: bool = False) -> Any:
     if paginate:
         cmd.append("--paginate")
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=30, check=False)
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30, check=False
+        )
     except FileNotFoundError:
-        print("Error: `gh` CLI not found. Install from https://cli.github.com/", file=sys.stderr)
+        print(
+            "Error: `gh` CLI not found. Install from https://cli.github.com/",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except subprocess.TimeoutExpired:
         print(f"Warning: API call timed out: {endpoint}", file=sys.stderr)
@@ -287,9 +371,11 @@ def gh_api(endpoint: str, paginate: bool = False) -> Any:
         if "404" in stderr or "Not Found" in stderr:
             return None
         if "rate limit" in stderr.lower():
-            print("Error: GitHub API rate limit exceeded. Try again later.", file=sys.stderr)
+            print(
+                "Error: GitHub API rate limit exceeded. Try again later.",
+                file=sys.stderr,
+            )
             return None
-        # For non-critical errors, return None rather than crashing
         print(f"Warning: gh api error for {endpoint}: {stderr}", file=sys.stderr)
         return None
 
@@ -304,27 +390,25 @@ def parse_repo_spec(spec: str) -> tuple[str | None, str | None]:
 
     Returns (owner_repo, None) for remote repos, (None, path) for local paths.
     """
-    # Local path
+    # Explicit local path indicators
     if spec.startswith("/") or spec.startswith("./") or spec.startswith("~"):
         return None, os.path.expanduser(spec)
-    if os.path.isdir(spec):
-        return None, os.path.realpath(spec)
 
     # GitHub URL: https://github.com/user/repo or https://github.com/user/repo.git
     m = re.match(r"https?://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$", spec)
     if m:
         return m.group(1), None
 
-    # Shorthand: user/repo
+    # Check if it's a local directory first
+    if os.path.isdir(spec):
+        return None, os.path.realpath(spec)
+
+    # Shorthand: user/repo (must have exactly one slash, no path separators)
     m = re.match(r"^([a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+)$", spec)
     if m:
         return m.group(1), None
 
-    # Could be a local relative path
-    if os.path.isdir(spec):
-        return None, os.path.realpath(spec)
-
-    # Assume shorthand
+    # Fallback: assume shorthand
     return spec, None
 
 
@@ -346,29 +430,48 @@ def fetch_file_tree(owner_repo: str, branch: str) -> list[dict]:
 
 
 def find_config_files_in_tree(tree: list[dict]) -> list[dict]:
-    """Search the file tree for agent config file patterns."""
+    """Search the file tree for agent config file patterns.
+
+    Matches both root-level and nested instances of config patterns.
+    """
     matches = []
+    seen_paths: set[str] = set()
+
     for item in tree:
         path = item.get("path", "")
-        item_type = item.get("type", "")  # "blob" or "tree"
+        item_type = item.get("type", "")
         if item_type != "blob":
             continue
+        if path in seen_paths:
+            continue
+
         for pattern in AGENT_CONFIG_PATTERNS:
+            matched = False
             if pattern.endswith("/"):
-                # Directory pattern: match anything under it
-                if path.startswith(pattern) or f"/{pattern}" in f"/{path}":
-                    matches.append(item)
-                    break
+                # Directory pattern: match anything under this directory name
+                dir_name = pattern.rstrip("/")
+                # At root level
+                if path.startswith(pattern):
+                    matched = True
+                # Nested: e.g. "src/backend/.claude/hooks/foo.sh"
+                elif f"/{dir_name}/" in f"/{path}":
+                    matched = True
             else:
-                # Exact file match (at any depth)
+                # Exact filename match at any depth
                 basename = os.path.basename(path)
-                if basename == pattern or path == pattern:
-                    matches.append(item)
-                    break
-                # Also check for the pattern at any depth
-                if path.endswith(f"/{pattern}"):
-                    matches.append(item)
-                    break
+                if basename == pattern:
+                    matched = True
+                # Also match full path like ".github/copilot-instructions.md"
+                elif path == pattern:
+                    matched = True
+                elif path.endswith(f"/{pattern}"):
+                    matched = True
+
+            if matched:
+                seen_paths.add(path)
+                matches.append(item)
+                break
+
     return matches
 
 
@@ -401,19 +504,27 @@ def fetch_contributors(owner_repo: str, count: int = 30) -> list[dict]:
 
 
 def classify_nesting(path: str) -> tuple[bool, int]:
-    """Determine if a config file is nested and at what depth."""
+    """Determine if a config file is nested and at what depth.
+
+    Root-level config (e.g. .claude/hooks/foo.sh) is NOT nested.
+    But src/.claude/hooks/foo.sh IS nested at depth 1.
+    """
     parts = path.split("/")
     if len(parts) <= 1:
         return False, 0
+    # If the first component is a known root config dir, it's root-level
     if parts[0] in ROOT_CONFIG_DIRS:
         return False, 0
-    # It's nested: depth = number of dirs before the config dir/file
+    # Find the config dir in the path to determine nesting depth
     for i, part in enumerate(parts):
         if part in ROOT_CONFIG_DIRS or any(
             part == p.rstrip("/") for p in AGENT_CONFIG_PATTERNS
         ):
             return True, i
-    return True, len(parts) - 1
+    # File at depth (e.g. nested CLAUDE.md)
+    if len(parts) > 1:
+        return True, len(parts) - 1
+    return False, 0
 
 
 # ---------------------------------------------------------------------------
@@ -457,14 +568,16 @@ def analyze_content(file_path: str, content: str) -> list[Finding]:
             if match_type == "path":
                 if re.search(rule["pattern"], file_path) and key not in seen:
                     seen.add(key)
-                    findings.append(Finding(
-                        category=category,
-                        rule_id=rule["id"],
-                        severity=rule["severity"],
-                        title=rule["title"],
-                        description=rule["description"],
-                        file_path=file_path,
-                    ))
+                    findings.append(
+                        Finding(
+                            category=category,
+                            rule_id=rule["id"],
+                            severity=rule["severity"],
+                            title=rule["title"],
+                            description=rule["description"],
+                            file_path=file_path,
+                        )
+                    )
 
             elif match_type == "content" and content:
                 for line_idx, line in enumerate(content.split("\n"), 1):
@@ -473,16 +586,18 @@ def analyze_content(file_path: str, content: str) -> list[Finding]:
                         evidence = line.strip()
                         if len(evidence) > 200:
                             evidence = evidence[:200] + "..."
-                        findings.append(Finding(
-                            category=category,
-                            rule_id=rule["id"],
-                            severity=rule["severity"],
-                            title=rule["title"],
-                            description=rule["description"],
-                            file_path=file_path,
-                            evidence=evidence,
-                            line_num=line_idx,
-                        ))
+                        findings.append(
+                            Finding(
+                                category=category,
+                                rule_id=rule["id"],
+                                severity=rule["severity"],
+                                title=rule["title"],
+                                description=rule["description"],
+                                file_path=file_path,
+                                evidence=evidence,
+                                line_num=line_idx,
+                            )
+                        )
                         break  # one finding per rule per file
 
     return findings
@@ -525,6 +640,9 @@ def calculate_health(
     health["open_issues"] = meta.get("open_issues_count", 0)
     health["language"] = meta.get("language") or "Unknown"
     health["description"] = meta.get("description") or ""
+    health["archived"] = meta.get("archived", False)
+    health["fork"] = meta.get("fork", False)
+    health["license"] = (meta.get("license") or {}).get("spdx_id", "None")
 
     # Age
     created = meta.get("created_at", "")
@@ -577,7 +695,11 @@ def calculate_health(
             top_pct = top / total * 100
             bus_factor = 0
             running = 0
-            for c in sorted(contributors, key=lambda x: x.get("contributions", 0), reverse=True):
+            for c in sorted(
+                contributors,
+                key=lambda x: x.get("contributions", 0),
+                reverse=True,
+            ):
                 running += c.get("contributions", 0)
                 bus_factor += 1
                 if running / total >= 0.5:
@@ -586,8 +708,20 @@ def calculate_health(
             health["top_contributor_pct"] = round(top_pct, 1)
             health["top_contributor"] = contributors[0].get("login", "unknown")
 
+    # ------------------------------------------------------------------
     # Calculate health score (0-10)
+    # ------------------------------------------------------------------
     score = 5.0
+
+    # Archived = penalty
+    if health.get("archived"):
+        score -= 2.0
+        health["signals"].append("Repository is ARCHIVED (read-only, no longer maintained)")
+
+    # Fork = slight penalty (derivative work)
+    if health.get("fork"):
+        score -= 0.5
+        health["signals"].append("Repository is a fork")
 
     # Activity bonus/penalty
     staleness = health["staleness_days"]
@@ -605,7 +739,9 @@ def calculate_health(
         health["signals"].append(f"Stale ({staleness} days since last push)")
     else:
         score -= 2.0
-        health["signals"].append(f"Likely abandoned ({staleness} days since last push)")
+        health["signals"].append(
+            f"Likely abandoned ({staleness} days since last push)"
+        )
 
     # Popularity bonus
     stars = health["stars"]
@@ -627,7 +763,9 @@ def calculate_health(
     bus = health["bus_factor"]
     if n_contributors >= 10:
         score += 1.0
-        health["signals"].append(f"Healthy contributor base ({n_contributors} contributors)")
+        health["signals"].append(
+            f"Healthy contributor base ({n_contributors} contributors)"
+        )
     elif n_contributors >= 3:
         score += 0.5
         health["signals"].append(f"Small team ({n_contributors} contributors)")
@@ -658,7 +796,18 @@ def calculate_health(
         health["signals"].append(f"Very new project ({age} days old)")
     elif age > 365:
         score += 0.5
-        health["signals"].append(f"Established project ({age // 365} years old)")
+        health["signals"].append(
+            f"Established project ({age // 365} year{'s' if age // 365 != 1 else ''} old)"
+        )
+
+    # License
+    lic = health.get("license", "None")
+    if lic in ("MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC"):
+        score += 0.25
+        health["signals"].append(f"Permissive license ({lic})")
+    elif lic == "NOASSERTION" or lic == "None":
+        score -= 0.25
+        health["signals"].append("No license detected")
 
     health["score"] = round(max(0.0, min(10.0, score)), 1)
     return health
@@ -671,8 +820,9 @@ def calculate_health(
 def calculate_trust_score(
     config_safety_score: float, health_score: float
 ) -> tuple[float, str]:
-    """Calculate overall trust score and recommendation."""
+    """Calculate overall trust score and recommendation verdict."""
     if config_safety_score < 5:
+        # Config threats dominate when they're serious
         trust = 0.2 * health_score + 0.8 * config_safety_score
     else:
         trust = 0.5 * health_score + 0.5 * config_safety_score
@@ -697,14 +847,15 @@ def calculate_trust_score(
 # Local repo scanning (reuse discovery script logic)
 # ---------------------------------------------------------------------------
 
-def scan_local_repo(repo_path: str) -> tuple[dict, list[dict], list[Finding]]:
+def scan_local_repo(
+    repo_path: str,
+) -> tuple[dict, list[dict], list[Finding]]:
     """Scan a local repo: return (metadata, config_files_info, findings)."""
     repo_path = os.path.realpath(os.path.expanduser(repo_path))
     if not os.path.isdir(repo_path):
         print(f"Error: {repo_path} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    # Try to get repo name and remote info
     meta: dict[str, Any] = {
         "name": os.path.basename(repo_path),
         "local_path": repo_path,
@@ -715,19 +866,22 @@ def scan_local_repo(repo_path: str) -> tuple[dict, list[dict], list[Finding]]:
     try:
         url_result = subprocess.run(
             ["git", "-C", repo_path, "remote", "get-url", "origin"],
-            capture_output=True, text=True, check=False, timeout=5,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=5,
         )
         if url_result.returncode == 0:
             remote_url = url_result.stdout.strip()
             meta["remote_url"] = remote_url
             for prefix in ("git@github.com:", "https://github.com/"):
                 if remote_url.startswith(prefix):
-                    owner_repo = remote_url[len(prefix):].removesuffix(".git")
+                    owner_repo = remote_url[len(prefix) :].removesuffix(".git")
                     meta["github_repo"] = owner_repo
     except Exception:
         pass
 
-    # Run the discovery script as a library
+    # Run the discovery script as a subprocess
     script_dir = os.path.dirname(os.path.abspath(__file__))
     discover_script = os.path.join(script_dir, "repovet-config-discover.py")
 
@@ -738,7 +892,10 @@ def scan_local_repo(repo_path: str) -> tuple[dict, list[dict], list[Finding]]:
         try:
             proc = subprocess.run(
                 [sys.executable, discover_script, repo_path, "--compact"],
-                capture_output=True, text=True, timeout=30, check=False,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
             )
             if proc.returncode == 0:
                 discovery = json.loads(proc.stdout)
@@ -780,7 +937,9 @@ def scan_local_repo(repo_path: str) -> tuple[dict, list[dict], list[Finding]]:
     return meta, config_files_info, findings
 
 
-def _manual_local_scan(repo_path: str) -> tuple[list[dict], list[Finding]]:
+def _manual_local_scan(
+    repo_path: str,
+) -> tuple[list[dict], list[Finding]]:
     """Fallback local scan when discovery script is not available."""
     import glob as globmod
 
@@ -798,9 +957,12 @@ def _manual_local_scan(repo_path: str) -> tuple[list[dict], list[Finding]]:
             rel = os.path.relpath(match, repo_path)
             if rel.startswith(".git" + os.sep):
                 continue
+            is_nest, nest_depth = classify_nesting(rel.replace(os.sep, "/"))
             config_files.append({
                 "path": rel,
                 "size_bytes": os.path.getsize(match),
+                "is_nested": is_nest,
+                "nested_depth": nest_depth,
             })
             content = None
             try:
@@ -818,7 +980,9 @@ def _manual_local_scan(repo_path: str) -> tuple[list[dict], list[Finding]]:
 # Remote repo scanning
 # ---------------------------------------------------------------------------
 
-def scan_remote_repo(owner_repo: str) -> tuple[dict, list[dict], list[Finding], dict, list[dict], list[dict]]:
+def scan_remote_repo(
+    owner_repo: str,
+) -> tuple[dict, list[dict], list[Finding], dict, list[dict], list[dict]]:
     """Scan a remote GitHub repo via API.
 
     Returns: (metadata, config_files, findings, health_data, commits, contributors)
@@ -826,8 +990,14 @@ def scan_remote_repo(owner_repo: str) -> tuple[dict, list[dict], list[Finding], 
     print(f"  Fetching repository metadata...", file=sys.stderr)
     meta = fetch_repo_metadata(owner_repo)
     if not meta:
-        print(f"Error: Repository '{owner_repo}' not found or not accessible.", file=sys.stderr)
-        print("Make sure the repo exists and you have access (run `gh auth status`).", file=sys.stderr)
+        print(
+            f"Error: Repository '{owner_repo}' not found or not accessible.",
+            file=sys.stderr,
+        )
+        print(
+            "Make sure the repo exists and you have access (run `gh auth status`).",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     default_branch = meta.get("default_branch", "main")
@@ -835,7 +1005,10 @@ def scan_remote_repo(owner_repo: str) -> tuple[dict, list[dict], list[Finding], 
     print(f"  Fetching file tree ({default_branch})...", file=sys.stderr)
     tree = fetch_file_tree(owner_repo, default_branch)
     if not tree:
-        print("Warning: Could not fetch file tree. Report will be limited.", file=sys.stderr)
+        print(
+            "  Warning: Could not fetch file tree. Report will be limited.",
+            file=sys.stderr,
+        )
 
     # Find config files
     config_entries = find_config_files_in_tree(tree)
@@ -851,21 +1024,23 @@ def scan_remote_repo(owner_repo: str) -> tuple[dict, list[dict], list[Finding], 
             path = entry.get("path", "")
             size = entry.get("size", 0)
             is_nest, nest_depth = classify_nesting(path)
-            config_files.append({
+            cf: dict[str, Any] = {
                 "path": path,
                 "size_bytes": size,
                 "is_nested": is_nest,
                 "nested_depth": nest_depth,
-            })
+            }
+            config_files.append(cf)
 
             # Fetch and analyze content
             content = fetch_file_content(owner_repo, path)
             if content:
                 file_findings = analyze_content(path, content)
                 findings.extend(file_findings)
-
-                # Store content for the report
-                config_files[-1]["content"] = content
+                # Store content snippet for the report (first 500 chars)
+                cf["content_preview"] = (
+                    content[:500] + "..." if len(content) > 500 else content
+                )
     else:
         print("  No agent config files found.", file=sys.stderr)
 
@@ -885,6 +1060,7 @@ def scan_remote_repo(owner_repo: str) -> tuple[dict, list[dict], list[Finding], 
 # ---------------------------------------------------------------------------
 
 def format_age(days: int) -> str:
+    """Format a number of days into a human-readable age string."""
     if days < 1:
         return "today"
     if days == 1:
@@ -902,6 +1078,7 @@ def format_age(days: int) -> str:
 
 
 def format_staleness_label(days: int) -> str:
+    """Return a short label for how stale the repo is."""
     if days < 7:
         return "active"
     if days < 30:
@@ -913,24 +1090,67 @@ def format_staleness_label(days: int) -> str:
     return "abandoned"
 
 
-def severity_badge(sev: str, use_color: bool) -> str:
+def score_bar(score: float, width: int = 20, use_color: bool = False) -> str:
+    """Render a text-based progress bar for a score out of 10."""
+    filled = int(round(score / 10.0 * width))
+    filled = max(0, min(width, filled))
+    empty = width - filled
+
     if use_color:
-        color = SEVERITY_COLORS.get(sev, "")
-        return f"{color}{BOLD}{sev}{RESET}"
-    return sev
+        if score >= 7:
+            color = GREEN
+        elif score >= 4:
+            color = YELLOW
+        else:
+            color = RED
+        return f"{color}{'█' * filled}{DIM}{'░' * empty}{RESET}"
+    else:
+        return f"{'█' * filled}{'░' * empty}"
 
 
-def format_finding_md(f: Finding) -> str:
+def trust_score_display(
+    score: float, verdict: str, use_color: bool = False
+) -> str:
+    """Format the trust score with bar and verdict for display."""
+    bar = score_bar(score, use_color=use_color)
+    if use_color:
+        if score >= 7:
+            color = GREEN
+        elif score >= 4:
+            color = YELLOW
+        else:
+            color = RED
+        return f"{color}{BOLD}{score}/10{RESET} {bar} {BOLD}{verdict}{RESET}"
+    return f"{score}/10 {bar} {verdict}"
+
+
+def severity_icon(sev: str) -> str:
+    """Return a text indicator for severity level."""
+    if sev == "CRITICAL":
+        return "[!!!]"
+    if sev == "HIGH":
+        return "[!!]"
+    return "[!]"
+
+
+def format_finding_md(f: Finding, use_color: bool = False) -> str:
     """Format a single finding as markdown."""
-    lines = [f"### {f.severity}: {f.title}"]
-    lines.append(f"**File**: `{f.file_path}`")
-    if f.line_num:
-        lines[-1] += f" (line {f.line_num})"
+    lines = []
+
+    if use_color:
+        color = SEVERITY_COLORS.get(f.severity, "")
+        lines.append(f"### {color}{BOLD}{f.severity}{RESET}: {f.title}")
+    else:
+        lines.append(f"### {f.severity}: {f.title}")
+
+    lines.append(f"**File**: `{f.file_path}`" + (f" (line {f.line_num})" if f.line_num else ""))
     lines.append(f"**Risk**: {f.description}")
+
     if f.evidence:
-        lines.append(f"```")
+        lines.append("```")
         lines.append(f.evidence)
-        lines.append(f"```")
+        lines.append("```")
+
     return "\n".join(lines)
 
 
@@ -945,71 +1165,95 @@ def generate_report(
     meta: dict | None = None,
     use_color: bool = False,
 ) -> str:
-    """Generate the full markdown report."""
+    """Generate the full markdown assessment report."""
     lines: list[str] = []
 
-    # Header
-    lines.append(f"# RepoVet Assessment: {repo_name_str}")
-    lines.append("")
-
-    # Trust score line with color
-    score_str = f"{trust_score}/10"
+    # ---- Header ----
     if use_color:
-        if trust_score >= 7:
-            score_str = f"\033[92m{BOLD}{trust_score}/10{RESET}"
-        elif trust_score >= 4:
-            score_str = f"\033[93m{BOLD}{trust_score}/10{RESET}"
-        else:
-            score_str = f"\033[91m{BOLD}{trust_score}/10{RESET}"
-    lines.append(f"**Trust Score: {score_str}** -- {verdict}")
+        lines.append(f"{BOLD}{'=' * 60}{RESET}")
+        lines.append(f"{BOLD}  RepoVet Assessment: {repo_name_str}{RESET}")
+        lines.append(f"{BOLD}{'=' * 60}{RESET}")
+    else:
+        lines.append(f"# RepoVet Assessment: {repo_name_str}")
     lines.append("")
 
-    # At a Glance
-    lines.append("## At a Glance")
+    # Trust score with visual bar
+    ts_display = trust_score_display(trust_score, verdict, use_color)
+    if use_color:
+        lines.append(f"  Trust Score: {ts_display}")
+    else:
+        lines.append(f"**Trust Score: {trust_score}/10** -- {verdict}")
+    lines.append("")
+
+    # ---- At a Glance ----
+    if use_color:
+        lines.append(f"{BOLD}## At a Glance{RESET}")
+    else:
+        lines.append("## At a Glance")
 
     if meta and meta.get("source") != "local":
         created_days = health.get("age_days", 0)
         stale_days = health.get("staleness_days", 0)
-        lines.append(f"- **Created**: {format_age(created_days)}")
         stale_label = format_staleness_label(stale_days)
-        lines.append(f"- **Last push**: {format_age(stale_days)} ({stale_label})")
-        lines.append(
-            f"- **Stars**: {health.get('stars', 0):,} | **Forks**: {health.get('forks', 0):,}"
-        )
-        lines.append(f"- **Contributors**: {health.get('contributors_count', 0)}")
-        lines.append(f"- **Language**: {health.get('language', 'Unknown')}")
+        lines.append(f"| Metric | Value |")
+        lines.append(f"|--------|-------|")
+        lines.append(f"| Created | {format_age(created_days)} |")
+        lines.append(f"| Last push | {format_age(stale_days)} ({stale_label}) |")
+        lines.append(f"| Stars | {health.get('stars', 0):,} |")
+        lines.append(f"| Forks | {health.get('forks', 0):,} |")
+        lines.append(f"| Contributors | {health.get('contributors_count', 0)} |")
+        lines.append(f"| Language | {health.get('language', 'Unknown')} |")
+        lic = health.get("license", "None")
+        if lic and lic != "None":
+            lines.append(f"| License | {lic} |")
         desc = health.get("description", "")
         if desc:
-            lines.append(f"- **Description**: {desc}")
+            lines.append(f"| Description | {desc} |")
+        if health.get("archived"):
+            lines.append(f"| Status | **ARCHIVED** |")
     else:
-        lines.append(f"- **Path**: `{meta.get('local_path', '?')}`")
+        lines.append(f"- **Path**: `{meta.get('local_path', '?') if meta else '?'}`")
         if meta and meta.get("github_repo"):
             lines.append(f"- **Remote**: github.com/{meta['github_repo']}")
 
+    lines.append(f"")
     lines.append(f"- **Config files found**: {len(config_files)}")
     lines.append(f"- **Security findings**: {len(findings)}")
     lines.append("")
 
-    # Score breakdown
-    lines.append("## Score Breakdown")
-    lines.append(f"- **Config Safety**: {config_safety_score}/10")
-    lines.append(f"- **Repo Health**: {health.get('score', 5.0)}/10")
+    # ---- Score Breakdown ----
+    if use_color:
+        lines.append(f"{BOLD}## Score Breakdown{RESET}")
+    else:
+        lines.append("## Score Breakdown")
 
-    # Explain weighting
+    health_score = health.get("score", 5.0)
+    cs_bar = score_bar(config_safety_score, width=15, use_color=use_color)
+    hs_bar = score_bar(health_score, width=15, use_color=use_color)
+    lines.append(f"- **Config Safety**: {config_safety_score}/10 {cs_bar}")
+    lines.append(f"- **Repo Health**:  {health_score}/10 {hs_bar}")
+
     if config_safety_score < 5:
-        lines.append(f"- *Config threats dominate scoring (80% config, 20% health)*")
+        lines.append(
+            f"- *Config threats dominate scoring (80% config, 20% health)*"
+        )
     else:
         lines.append(f"- *Balanced scoring (50% config, 50% health)*")
     lines.append("")
 
-    # Findings
+    # ---- Findings ----
     if findings:
-        lines.append("## Agent Configuration Findings")
+        if use_color:
+            lines.append(f"{BOLD}## Agent Configuration Findings{RESET}")
+        else:
+            lines.append("## Agent Configuration Findings")
         lines.append("")
 
         # Sort by severity
         severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2}
-        sorted_findings = sorted(findings, key=lambda f: severity_order.get(f.severity, 99))
+        sorted_findings = sorted(
+            findings, key=lambda f: severity_order.get(f.severity, 99)
+        )
 
         # Count by severity
         crit = sum(1 for f in findings if f.severity == "CRITICAL")
@@ -1017,57 +1261,90 @@ def generate_report(
         med = sum(1 for f in findings if f.severity == "MEDIUM")
         summary_parts = []
         if crit:
-            summary_parts.append(f"{crit} critical")
+            summary_parts.append(
+                f"{RED}{crit} critical{RESET}" if use_color else f"{crit} critical"
+            )
         if high:
-            summary_parts.append(f"{high} high")
+            summary_parts.append(
+                f"{YELLOW}{high} high{RESET}" if use_color else f"{high} high"
+            )
         if med:
             summary_parts.append(f"{med} medium")
         lines.append(f"**{len(findings)} finding(s)**: {', '.join(summary_parts)}")
         lines.append("")
 
         for finding in sorted_findings:
-            lines.append(format_finding_md(finding))
+            lines.append(format_finding_md(finding, use_color))
             lines.append("")
     else:
-        lines.append("## Agent Configuration Findings")
+        if use_color:
+            lines.append(f"{BOLD}## Agent Configuration Findings{RESET}")
+        else:
+            lines.append("## Agent Configuration Findings")
         lines.append("")
-        lines.append("No security findings detected in agent configuration files.")
+        lines.append(
+            "No security findings detected in agent configuration files. "
+            + ("" if not config_files else f"({len(config_files)} config file(s) scanned)")
+        )
         lines.append("")
 
-    # Repo Health
-    lines.append("## Repo Health")
+    # ---- Repo Health ----
+    if use_color:
+        lines.append(f"{BOLD}## Repo Health{RESET}")
+    else:
+        lines.append("## Repo Health")
+
     for signal in health.get("signals", []):
         lines.append(f"- {signal}")
     if not health.get("signals"):
         lines.append("- No health signals available (local scan)")
     lines.append("")
 
-    # Nested configs
+    # ---- Nested Config Warning ----
     nested = [cf for cf in config_files if cf.get("is_nested")]
     if nested:
-        lines.append("## Nested Config Warning")
+        if use_color:
+            lines.append(f"{RED}{BOLD}## Nested Config Warning{RESET}")
+        else:
+            lines.append("## Nested Config Warning")
         lines.append("")
-        lines.append("Found agent config in subdirectories (potential hiding of malicious configs):")
+        lines.append(
+            "Found agent config in subdirectories (potential hiding of malicious configs):"
+        )
         for cf in nested:
             depth = cf.get("nested_depth", 0)
             lines.append(f"- `{cf['path']}` (depth: {depth})")
         lines.append("")
 
-    # Config files inventory
+    # ---- Config Files Inventory ----
     if config_files:
-        lines.append("## Config Files Inventory")
+        if use_color:
+            lines.append(f"{BOLD}## Config Files Inventory{RESET}")
+        else:
+            lines.append("## Config Files Inventory")
         lines.append("")
         for cf in config_files:
             path = cf.get("path", "")
             size = cf.get("size_bytes", 0)
-            nested_marker = " [NESTED]" if cf.get("is_nested") else ""
+            nested_marker = " **[NESTED]**" if cf.get("is_nested") else ""
             lines.append(f"- `{path}` ({size:,} bytes){nested_marker}")
         lines.append("")
 
-    # Recommendation
-    lines.append("## Recommendation")
+    # ---- Recommendation ----
+    if use_color:
+        lines.append(f"{BOLD}## Recommendation{RESET}")
+    else:
+        lines.append("## Recommendation")
     lines.append("")
     lines.append(_generate_recommendation(trust_score, findings, config_files))
+    lines.append("")
+
+    # Footer
+    lines.append("---")
+    lines.append(
+        f"*Generated by RepoVet v{VERSION} at "
+        f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}*"
+    )
     lines.append("")
 
     return "\n".join(lines)
@@ -1081,6 +1358,12 @@ def _generate_recommendation(
     high = [f for f in findings if f.severity == "HIGH"]
     nested = [cf for cf in config_files if cf.get("is_nested")]
 
+    if not config_files and trust_score >= 7.0:
+        return (
+            "This repository has no agent configuration files. It is safe to open "
+            "in AI coding tools. Standard precautions apply."
+        )
+
     if trust_score >= 8.0:
         return (
             "This repository appears safe to use. No significant risks were "
@@ -1091,40 +1374,75 @@ def _generate_recommendation(
         parts = ["Proceed with caution."]
         if high:
             parts.append(
-                f"Review the {len(high)} high-severity finding(s) before opening in an AI coding tool."
+                f"Review the {len(high)} high-severity finding(s) before opening "
+                "in an AI coding tool."
             )
         if nested:
-            parts.append(f"Note the {len(nested)} nested config file(s) which may indicate config hiding.")
+            parts.append(
+                f"Note the {len(nested)} nested config file(s) which may indicate "
+                "config hiding."
+            )
         return " ".join(parts)
 
     if trust_score >= 4.0:
         parts = ["Manual review recommended before use."]
         if crit:
             parts.append(
-                f"There {'is' if len(crit) == 1 else 'are'} {len(crit)} critical finding(s) "
-                "that should be investigated."
+                f"There {'is' if len(crit) == 1 else 'are'} {len(crit)} critical "
+                "finding(s) that should be investigated."
+            )
+        if high:
+            parts.append(
+                f"Additionally, {len(high)} high-severity issue(s) were found."
             )
         return " ".join(parts)
 
-    # Low trust
+    # Low trust score -- generate specific, actionable advice
     parts = []
+
     hook_findings = [f for f in crit if f.category == "auto_execution"]
-    exfil_findings = [f for f in crit if f.category in ("network_exfiltration", "credential_access")]
+    exfil_findings = [
+        f
+        for f in crit
+        if f.category in ("network_exfiltration", "credential_access")
+    ]
+    injection_findings = [f for f in findings if f.category == "prompt_injection"]
 
     if hook_findings:
-        hook_paths = list(set(f.file_path for f in hook_findings))
+        hook_paths = sorted(set(f.file_path for f in hook_findings))
+        dirs = sorted(set(os.path.dirname(p) for p in hook_paths))
+        dir_list = ", ".join(f"`{d}/`" for d in dirs) if dirs else ", ".join(
+            f"`{p}`" for p in hook_paths
+        )
         parts.append(
-            f"Do not open this repo in Claude Code as-is. "
+            f"**Do not open this repo in Claude Code as-is.** "
             f"Auto-execution hooks will run automatically. "
-            f"If you must use it, delete {', '.join(f'`{p}`' for p in hook_paths)} first."
+            f"If you must use it, delete {dir_list} first."
         )
-    elif exfil_findings:
+
+    if exfil_findings:
+        if not hook_findings:
+            parts.append(
+                "**Do not open this repo in an AI coding tool** without first "
+                "removing the malicious configuration files."
+            )
+        exfil_types = set()
+        for f in exfil_findings:
+            if f.category == "credential_access":
+                exfil_types.add("credential theft")
+            else:
+                exfil_types.add("data exfiltration")
         parts.append(
-            "Do not open this repo in an AI coding tool without first removing "
-            "the malicious configuration files. Data exfiltration and/or credential "
-            "theft patterns were detected."
+            f"Detected patterns: {', '.join(sorted(exfil_types))}."
         )
-    else:
+
+    if injection_findings and not hook_findings and not exfil_findings:
+        parts.append(
+            "**Review with caution.** Prompt injection patterns were detected "
+            "that could manipulate AI agent behavior."
+        )
+
+    if not parts:
         parts.append(
             "This repository has significant security concerns. Review all findings "
             "carefully before use. Consider deleting agent configuration files."
@@ -1132,7 +1450,8 @@ def _generate_recommendation(
 
     if nested:
         parts.append(
-            f"Also check nested config directories -- {len(nested)} hidden config file(s) found."
+            f"Also check nested config directories -- {len(nested)} hidden "
+            "config file(s) found in subdirectories."
         )
 
     return " ".join(parts)
@@ -1152,7 +1471,7 @@ def generate_json_output(
     config_files: list[dict],
     meta: dict | None = None,
 ) -> dict:
-    """Generate structured JSON output."""
+    """Generate structured JSON output for programmatic consumption."""
     return {
         "repo": repo_name_str,
         "trust_score": trust_score,
@@ -1173,13 +1492,23 @@ def generate_json_output(
             }
             for f in findings
         ],
+        "finding_counts": {
+            "critical": sum(1 for f in findings if f.severity == "CRITICAL"),
+            "high": sum(1 for f in findings if f.severity == "HIGH"),
+            "medium": sum(1 for f in findings if f.severity == "MEDIUM"),
+            "total": len(findings),
+        },
         "config_files": [
-            {k: v for k, v in cf.items() if k != "content"}
+            {k: v for k, v in cf.items() if k not in ("content", "content_preview")}
             for cf in config_files
         ],
+        "nested_config_count": sum(
+            1 for cf in config_files if cf.get("is_nested")
+        ),
         "meta": {
             "scanner_version": VERSION,
             "scan_time": datetime.now(timezone.utc).isoformat(),
+            "source": (meta or {}).get("source", "remote"),
         },
     }
 
@@ -1196,23 +1525,31 @@ def cmd_scan(args: argparse.Namespace) -> None:
 
     owner_repo, local_path = parse_repo_spec(spec)
 
+    # Banner
     if use_color:
-        print(f"\n{BOLD}RepoVet{RESET} v{VERSION}\n", file=sys.stderr)
+        print(f"\n{BOLD}{CYAN}RepoVet{RESET} v{VERSION}", file=sys.stderr)
+        print(f"{DIM}Trust assessment for code repositories{RESET}\n", file=sys.stderr)
     else:
         print(f"\nRepoVet v{VERSION}\n", file=sys.stderr)
 
     if local_path:
-        # --- Local repo scan ---
+        # ---- Local repo scan ----
         print(f"Scanning local repo: {local_path}", file=sys.stderr)
         meta, config_files, findings = scan_local_repo(local_path)
 
         # Try to enrich with GitHub data if we have a remote
-        health: dict[str, Any] = {"score": 5.0, "signals": ["Local scan (limited health data)"]}
+        health: dict[str, Any] = {
+            "score": 5.0,
+            "signals": ["Local scan (limited health data)"],
+        }
         commits: list[dict] = []
         contributors: list[dict] = []
 
         if meta.get("github_repo"):
-            print(f"  Detected GitHub remote: {meta['github_repo']}", file=sys.stderr)
+            print(
+                f"  Detected GitHub remote: {meta['github_repo']}",
+                file=sys.stderr,
+            )
             print(f"  Enriching with GitHub metadata...", file=sys.stderr)
             gh_meta = fetch_repo_metadata(meta["github_repo"])
             if gh_meta:
@@ -1228,27 +1565,50 @@ def cmd_scan(args: argparse.Namespace) -> None:
         repo_display = meta.get("github_repo", meta.get("name", local_path))
 
     else:
-        # --- Remote repo scan ---
+        # ---- Remote repo scan (no clone!) ----
         print(f"Scanning remote repo: {owner_repo}", file=sys.stderr)
-        meta_full, config_files, findings, health, commits, contributors = scan_remote_repo(owner_repo)
+        (
+            meta_full,
+            config_files,
+            findings,
+            health,
+            commits,
+            contributors,
+        ) = scan_remote_repo(owner_repo)
         meta = meta_full
         repo_display = owner_repo
 
-    # Calculate scores
+    # ---- Calculate scores ----
     config_safety = 10.0
     for f in findings:
         config_safety -= SEVERITY_SCORES.get(f.severity, 0)
     config_safety = max(0.0, min(10.0, config_safety))
 
-    trust_score, verdict = calculate_trust_score(config_safety, health.get("score", 5.0))
+    trust_score, verdict = calculate_trust_score(
+        config_safety, health.get("score", 5.0)
+    )
 
-    print(f"  Scan complete.\n", file=sys.stderr)
+    # Summary to stderr
+    if use_color:
+        ts = trust_score_display(trust_score, verdict, use_color=True)
+        print(f"  Scan complete. Trust Score: {ts}\n", file=sys.stderr)
+    else:
+        print(
+            f"  Scan complete. Trust Score: {trust_score}/10 ({verdict})\n",
+            file=sys.stderr,
+        )
 
-    # Generate output
+    # ---- Generate output ----
     if output_json:
         output = generate_json_output(
-            repo_display, trust_score, verdict, config_safety,
-            health, findings, config_files, meta,
+            repo_display,
+            trust_score,
+            verdict,
+            config_safety,
+            health,
+            findings,
+            config_files,
+            meta,
         )
         json_str = json.dumps(output, indent=2, ensure_ascii=False)
         if args.output:
@@ -1259,8 +1619,15 @@ def cmd_scan(args: argparse.Namespace) -> None:
             print(json_str)
     else:
         report = generate_report(
-            repo_display, trust_score, verdict, config_safety,
-            health, findings, config_files, meta, use_color,
+            repo_display,
+            trust_score,
+            verdict,
+            config_safety,
+            health,
+            findings,
+            config_files,
+            meta,
+            use_color,
         )
         if args.output:
             # Strip ANSI codes for file output
@@ -1281,15 +1648,19 @@ def build_parser() -> argparse.ArgumentParser:
         prog="repovet",
         description="RepoVet -- Trust assessment for code repositories",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:
+        epilog="""\
+Examples:
   python3 repovet.py scan https://github.com/user/repo
   python3 repovet.py scan user/repo
   python3 repovet.py scan /path/to/local/repo
   python3 repovet.py scan user/repo -o report.md
   python3 repovet.py scan user/repo --json
+  python3 repovet.py scan user/repo --json -o report.json
 """,
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {VERSION}")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {VERSION}"
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
@@ -1304,7 +1675,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="GitHub URL (https://github.com/user/repo), shorthand (user/repo), or local path",
     )
     scan_parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         metavar="FILE",
         help="Write report to FILE instead of stdout",
     )

@@ -1,1 +1,2 @@
 duckdb>=1.0
+pytz
