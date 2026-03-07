@@ -2,253 +2,195 @@
 name: repo-trust-assessment
 allowed-tools: Bash Read Glob Grep Write Task
 description: |
-  Orchestrate a full trust assessment of a code repository. This is the top-level
-  RepoVet skill that coordinates all 12 sub-skills, calculates a trust score (0-10),
-  and produces a comprehensive trust report. Use this skill whenever someone asks:
-  "Should I trust this repo?", "Is this repo safe?", "Assess this repository",
-  "Evaluate this project", "Vet this codebase", "Run RepoVet on", "Trust score for",
-  "Is this safe to clone?", "Can I trust this dependency?", "Review this repo for
-  security", "Check this repo before I use it", "Analyze this GitHub project",
-  "Is this open-source library safe?", "Due diligence on this repo", "Repo risk
-  assessment", "Supply chain check", "Should I open this in Claude Code?", "Is this
-  repo malicious?", "Scan this repo for threats", "Repository security audit",
-  "Pre-adoption review", "Dependency trust check", "OSS evaluation",
-  "Tell me about this repo", "What is this repo?", "Analyze this repo",
-  "Who built this?", "Is this maintained?", "What does this repo do?",
-  "Give me a report on this repo", "Repo overview", "Repo summary".
+  Assess trust and analyze any code repository. This is the top-level RepoVet
+  skill. Use whenever someone shares a GitHub URL or mentions a repo and wants
+  to understand it: "Should I trust this repo?", "Tell me about this repo",
+  "What is this repo?", "Analyze this repo", "Who built this?", "Is this
+  maintained?", "Is this safe to clone?", "Review this repo", "Repo overview",
+  "Due diligence", "Supply chain check", "Dependency trust check".
   Trigger whenever the user shares a GitHub URL and wants to understand it.
   Do NOT use for writing code or non-repo-related tasks.
 ---
 
 # RepoVet: Repository Trust Assessment
 
-Full-stack trust assessment for any code repository. Takes a repo URL or local path,
-runs 12 analysis skills across three pillars (project health, code security, config
-safety), calculates a weighted trust score, and produces a human-readable report.
+Two-phase trust assessment: quick scan first (no clone), deep dive on request.
 
 ## When to Use
 
-- Someone provides a GitHub URL or local repo path and asks if it is trustworthy
-- Evaluating an open-source dependency before adoption
-- Security review before opening a project in Claude Code or another AI agent
+- Someone shares a GitHub URL and wants to know about it
+- Evaluating a dependency, library, or tool before adoption
+- Security review before cloning or opening in an AI coding agent
 - Hiring evaluation of a candidate's repository
-- Supply chain risk assessment
 
-## Sub-Skills Referenced
+## Phase 1: Quick Scan (No Clone)
 
-| # | Skill | Tier | Purpose |
-|---|-------|------|---------|
-| 1 | `git-commit-intel` | Data Extraction | Extract git history to commits.csv |
-| 2 | `github-project-intel` | Data Extraction | Extract PRs and issues to CSV |
-| 3 | `contributor-analysis` | Analysis | Contributor profiles, bus factor |
-| 4 | `repo-health-analysis` | Analysis | Maintenance velocity, review culture |
-| 5 | `security-history-analysis` | Analysis | CVE history, security commits |
-| 6 | `threat-auto-execution` | Threat Detection | Hooks and auto-run code |
-| 7 | `threat-network-exfil` | Threat Detection | Data sent to external URLs |
-| 8 | `threat-remote-code-execution` | Threat Detection | curl-pipe-bash patterns |
-| 9 | `threat-credential-access` | Threat Detection | Secret and token reads |
-| 10 | `threat-obfuscation` | Threat Detection | Base64, hex, stealth encoding |
-| 11 | `threat-repo-write` | Threat Detection | Force-push, destructive git ops |
-| 12 | `threat-prompt-injection` | Threat Detection | Agent behavior overrides |
+**Always start here.** Uses `repovet.py` to scan via GitHub API without cloning.
+This is fast (~10 seconds) and safe (nothing is executed locally).
 
-## Scripts
-
-All scripts live in the repository root `scripts/` directory:
-
-- `scripts/git-history-to-csv.py` -- Git commit history to CSV
-- `scripts/github-to-csv.py` -- GitHub PRs and issues to CSV via `gh` CLI
-- `scripts/repovet-config-discover.py` -- Discover agent config files, extract executables
-
-## Complete Workflow
-
-### Phase 1: Setup
-
-1. Determine if the input is a URL or a local path.
-2. If a URL, clone the repo:
-   ```bash
-   gh repo clone <owner/repo> /tmp/repovet-<repo-name>
-   # Fallback if gh is not available:
-   git clone <url> /tmp/repovet-<repo-name>
-   ```
-3. Normalize the repo name. For `https://github.com/user/repo` use
-   `github.com/user/repo`. For a local path, use the directory basename.
-4. Create the cache directory and set variables:
-   ```bash
-   CACHE_DIR=~/.repovet/cache/<normalized-repo-name>
-   mkdir -p "$CACHE_DIR"
-   ```
-
-### Phase 2: Data Extraction
-
-Run these in parallel using background tasks where possible:
-
-**2a -- Git history** (uses `git-commit-intel` skill):
 ```bash
-.venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE_DIR/commits.csv"
+.venv/bin/python scripts/repovet.py scan <owner/repo-or-url>
 ```
 
-**2b -- GitHub metadata** (run in background — takes longer due to API pagination):
+This produces:
+- Trust score (0-10)
+- Repo metadata (stars, forks, age, last push, contributors)
+- Config file detection (found .claude/, .cursorrules, etc. via API tree)
+- Threat findings (auto-execution, network exfil, credential access, etc.)
+- Health signals (staleness, bus factor, activity)
+- Recommendation (Trustworthy / Caution / Do Not Trust)
+
+**Present the quick scan results to the user.** Then:
+
+### Decision Point
+
+Based on quick scan results, offer the user a choice:
+
+- **Score 8-10, no threats**: "Looks clean. Want me to clone and do a full analytics deep dive?"
+- **Score 5-7, minor concerns**: "Some concerns found. Want me to clone and investigate further before you use it?"
+- **Score 0-4, serious threats**: "Significant risks detected. I recommend NOT cloning this. Want me to do a deeper remote analysis of the specific threats?"
+- **User asks "tell me more" / "analyze contributors" / etc.**: Proceed to Phase 2.
+
+**Do NOT automatically proceed to Phase 2.** Let the user decide.
+
+## Phase 2: Deep Dive (Clone + Full Analysis)
+
+Only proceed here if the user asks for more detail. This clones the repo and
+runs full analytics with DuckDB.
+
+### Step 1: Clone and Extract
+
 ```bash
-# Run in background while other steps proceed
-.venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE_DIR/prs.csv" &
-.venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE_DIR/issues.csv" &
-```
-Skip if `gh auth status` fails.
+# Clone
+gh repo clone <owner/repo> /tmp/repovet-<repo-name>
+REPO_PATH=/tmp/repovet-<repo-name>
+CACHE=~/.repovet/cache/github.com/<owner>/<repo>
+mkdir -p "$CACHE"
 
-**2c -- Config file discovery** (fast, run immediately):
+# Extract git history (fast, ~10s)
+.venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE/commits.csv"
+
+# Extract config files (fast, ~5s)
+.venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE/discovery.json"
+
+# Extract GitHub PRs and issues (slower, run in background)
+.venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs --issues -o "$CACHE/github.csv" &
+```
+
+### Step 2: Run Analytics
+
+Use DuckDB directly on the CSVs. Run queries based on what the user wants to know:
+
+**Contributor analysis:**
 ```bash
-.venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE_DIR/discovery.json"
+duckdb -markdown -c "
+SELECT author_name, COUNT(*) as commits, SUM(insertions) as lines_added
+FROM '$CACHE/commits.csv'
+GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
 ```
 
-Steps 2a and 2c are fast (<10s). Step 2b can take minutes for large repos — start it in the background and proceed with analysis on commits.csv and discovery.json while PRs/issues are still downloading.
-
-### Phase 3: Analysis (can run in parallel)
-
-These three skills read independent data sources and can execute in parallel.
-
-**3a -- Contributor analysis** (`contributor-analysis` skill):
-Read `commits.csv`. Determine top contributors, bus factor, contribution patterns
-(organic vs suspicious), and known/reputable maintainers.
-
-**3b -- Repository health** (`repo-health-analysis` skill):
-Read `commits.csv`, `prs.csv`, `issues.csv`. Assess maintenance status, commit
-velocity, review culture, and issue responsiveness.
-Produce a **health score from 0 to 10**.
-
-**3c -- Security history** (`security-history-analysis` skill):
-Read `commits.csv`. Find CVE-related commits, force-push history, secrets in
-history, and security fix response times.
-Produce a **security score from 0 to 10**.
-
-### Phase 4: Threat Detection (can run in parallel)
-
-Read `$CACHE_DIR/discovery.json` and run all seven threat skills in parallel.
-Each skill examines the discovered config files and executables for its threat
-category. Never execute discovered code -- this is static analysis only.
-
-| Skill | Checks for | Severity |
-|-------|-----------|----------|
-| `threat-auto-execution` | Hooks, pre/post-command scripts, auto-run code | CRITICAL |
-| `threat-network-exfil` | curl/wget/fetch sending data to external URLs | CRITICAL |
-| `threat-remote-code-execution` | `curl \| bash`, `eval(fetch(...))`, download-and-run | CRITICAL |
-| `threat-credential-access` | Reads of ~/.aws/, ~/.ssh/, $GITHUB_TOKEN, .env | HIGH-CRITICAL |
-| `threat-obfuscation` | Base64/hex encoding, unicode tricks, variable indirection | HIGH |
-| `threat-repo-write` | `git push --force`, `rm -rf`, destructive file ops | HIGH |
-| `threat-prompt-injection` | Instruction overrides, permission escalation, agent manipulation | CRITICAL |
-
-**Config safety score** (0-10): Start at 10, subtract per finding:
-- CRITICAL: -3 points
-- HIGH: -2 points
-- MEDIUM: -1 point
-- LOW: -0.5 points
-- Floor at 0
-
-### Phase 5: Trust Score Calculation
-
-**Inputs**: `health_score`, `security_score`, `config_safety_score` (each 0-10).
-
-**Formula with threat dominance**:
-```
-If config_safety_score < 5:
-    trust = 0.2 * health + 0.2 * security + 0.6 * config_safety
-Else:
-    trust = 0.4 * health + 0.3 * security + 0.3 * config_safety
+**Monthly velocity:**
+```bash
+duckdb -markdown -c "
+SELECT strftime(author_date::TIMESTAMPTZ, '%Y-%m') AS month,
+       COUNT(*) AS commits, COUNT(DISTINCT author_name) AS authors
+FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 1"
 ```
 
-Rationale: if agent configs contain active threats (score below 5), those threats
-are immediate and exploitable the moment someone opens the repo, so config safety
-dominates the weighting.
+**Bus factor:**
+```bash
+duckdb -markdown -c "
+WITH recent AS (
+    SELECT author_name, COUNT(*) AS c FROM '$CACHE/commits.csv'
+    WHERE author_date::TIMESTAMPTZ >= NOW() - INTERVAL '6 months'
+    GROUP BY 1 ORDER BY c DESC
+),
+cumul AS (
+    SELECT *, SUM(c) OVER (ORDER BY c DESC) AS running,
+           (SELECT SUM(c) FROM recent) AS total FROM recent
+)
+SELECT author_name, c as commits FROM cumul WHERE running - c < total * 0.8"
+```
 
-**Recommendation thresholds**:
+**Rich visual display (heatmap, charts, sparklines):**
+```bash
+.venv/bin/python scripts/repovet-display.py "$CACHE/commits.csv"
+```
 
-| Score | Recommendation |
-|-------|---------------|
-| 8-10 | Trustworthy -- no major red flags detected |
-| 5-7 | Use with caution -- review findings before proceeding |
-| 0-4 | Do not trust -- significant risks, do not use without remediation |
+**Full markdown report:**
+```bash
+.venv/bin/python scripts/repovet-analyze.py "$CACHE/commits.csv"
+```
 
-### Phase 6: Report Generation
+For any question about the repo data, write a DuckDB SQL query. See the
+`git-analytics-sql` skill for schema details and example queries.
 
-Write to `$CACHE_DIR/trust-report.md` using this template:
+### Step 3: Threat Deep Dive (if needed)
+
+If the quick scan flagged threats, run detailed analysis on discovery.json.
+Launch threat analysis skills in parallel as Task agents:
+
+- `threat-auto-execution` — examine hooks line by line
+- `threat-network-exfil` — trace where data goes
+- `threat-credential-access` — identify what secrets are accessed
+- `threat-obfuscation` — decode any encoded payloads
+- `threat-prompt-injection` — analyze instruction override patterns
+
+Each reads `$CACHE/discovery.json` and produces detailed findings with
+file paths, line numbers, and explanations.
+
+### Step 4: Final Report
+
+Synthesize all findings into a trust report:
 
 ```markdown
 # RepoVet Trust Report: <repo-name>
 
-**Assessment Date**: <timestamp>
-**Repository**: <url or path>
-**Trust Score**: <score>/10
-**Recommendation**: <Trustworthy | Use with caution | Do not trust>
+**Trust Score**: X/10 — <Recommendation>
 
-## TL;DR
-<One paragraph: what this repo is, whether to trust it, top finding.>
+## Quick Scan Summary
+<results from Phase 1>
 
-## Assessment Breakdown
-| Pillar | Score | Weight | Weighted |
-|--------|-------|--------|----------|
-| Project Health | X/10 | W% | X*W |
-| Code Security | X/10 | W% | X*W |
-| Config Safety | X/10 | W% | X*W |
-| **Trust Score** | | | **total/10** |
+## Deep Dive Findings
 
-## Critical Findings
-<CRITICAL/HIGH findings with file path, line numbers, why dangerous, action needed.
-If none: "No critical findings detected.">
+### Contributors
+<top contributors, bus factor, patterns>
 
-## Project Health Summary
-<Maintenance status, contributor count, bus factor, velocity, PR/issue patterns.>
+### Activity
+<velocity, staleness, trends>
 
-## Code Security Summary
-<CVE commits, security fix response time, force-push history, secrets detected.>
-
-## Config Threat Summary
-<Config files found, executables extracted, findings by threat category, snippets.>
+### Security
+<threat findings, config analysis>
 
 ## Recommendations
-<Numbered actionable steps. E.g.: remove hooks, audit encoded strings, fork repo.>
-
-## Raw Data Locations
-| File | Path |
-|------|------|
-| Git history | CACHE_DIR/commits.csv |
-| Pull requests | CACHE_DIR/prs.csv |
-| Issues | CACHE_DIR/issues.csv |
-| Config discovery | CACHE_DIR/discovery.json |
-| This report | CACHE_DIR/trust-report.md |
+<numbered actionable steps>
 ```
 
-After writing the report, display the TL;DR and trust score to the user directly.
+Write to `$CACHE/trust-report.md` and present key findings to the user.
 
-## Example
+## Trust Score
 
-**Input**: "Should I trust https://github.com/example/sketchy-lib?"
+**Three pillars** (each 0-10):
+- **Project Health**: contributors, velocity, bus factor, maintenance
+- **Code Security**: CVE history, security commits, secrets
+- **Config Safety**: agent config threats (hooks, exfil, injection)
 
-**Flow**:
-1. Clone to `/tmp/repovet-sketchy-lib`, cache at `~/.repovet/cache/github.com/example/sketchy-lib/`
-2. Extract: commits.csv (412 commits), prs.csv (89 PRs), discovery.json (3 config files)
-3. Analysis: health=7.2, security=6.5, bus_factor=2
-4. Threats: CRITICAL auto-execution (`.claude/hooks/pre-command.sh`), HIGH credential access (`$GITHUB_TOKEN`)
-5. Config safety: 10 - 3 - 2 = 5. Since 5 is not < 5, use balanced weights:
-   0.4 * 7.2 + 0.3 * 6.5 + 0.3 * 5.0 = 2.88 + 1.95 + 1.50 = **6.3**
-6. Recommendation: "Use with caution"
-
-**Output**:
+**Formula** (config threats dominate when serious):
 ```
-Trust Score: 6.3/10 -- Use with caution
-
-The repository is actively maintained with healthy contribution patterns but
-contains agent config files with concerning patterns. A pre-command hook runs
-automatically and accesses GITHUB_TOKEN. Review the Config Threat Summary before
-opening in Claude Code.
-
-Full report: ~/.repovet/cache/github.com/example/sketchy-lib/trust-report.md
+If config_safety < 5:  trust = 0.2*health + 0.2*security + 0.6*config_safety
+Else:                  trust = 0.4*health + 0.3*security + 0.3*config_safety
 ```
+
+| Score | Recommendation |
+|-------|---------------|
+| 8-10  | Trustworthy |
+| 5-7   | Use with caution |
+| 0-4   | Do not trust |
 
 ## Common Pitfalls
 
-- **Never skip config discovery** (Phase 2c). Malicious configs can hide in subdirectories.
-- **Never assume gh CLI is available**. Check `gh auth status` first; fall back to git-only.
-- **Never execute discovered code**. Read and analyze only. This is static analysis.
-- **Never inflate scores**. Missing data means score conservatively, not optimistically.
-- **Always write the full report**, even if the user only asked for a quick score.
-- **Watch for nested configs**. `is_nested: true` in discovery.json signals hidden intent.
-- **Round the trust score** to one decimal place for display.
+- **Always start with Phase 1** (quick scan). Never clone first.
+- **Never auto-proceed to Phase 2**. Let the user decide.
+- **Never execute discovered code**. Read and analyze only.
+- **Use DuckDB CLI directly** for queries, not Python wrappers.
+- **Watch for nested configs** — `is_nested: true` in discovery.json signals hidden intent.
