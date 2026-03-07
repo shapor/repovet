@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Generated data
+*.csv
+*.json
+!skill_stats.json
+~/.repovet/
+
+# External cloned repos (large)
+src/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Agent config (meta - our own project config)
+.agent/
+.agents/
+.claude/

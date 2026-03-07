@@ -1,0 +1,246 @@
+ Xiangyi Li 00:00
+Whereas, when the skills bench mentioned so?
+
+00:04
+Let me, I can. I can type it one more time. Codax for Auto? In the background and also in Hermes. I'm gonna start a new hermit session and ask the same question.
+
+00:23
+Find one skills and just mentioned in the YouTube video.
+
+00:32
+All right. As you can see with all the skills, the codecs will try to use playwright mCP or the player icli is. I don't have to play around. Mcpna called for codecs. So, back in the previous session, it basically couldn't do it because there's no way you can dive into that via skills, um. Without the package that the skills is using. So, in Hermes Asians is gonna use this YouTube content skills, which is, like, it's found it's on the regulatory itself. It's gonna think for a while.
+
+01:16
+Okay, see how to improve this MCP server? Installation.
+
+  Speaker 2 01:26
+Okay, I
+
+  Xiangyi Li 01:28
+Want to stop. I'm gonna build this.
+
+01:33
+Yeah, basically, Kodaks will struggle a lot just to save everybody's hand. I'm not going to show you how codecs failed. Oh, let's go. Let's go take some time.
+
+01:52
+Yeah, so it actually got it very correctly, so it's mentioned, um, oh, one minute and 70 17 seconds and basically the transport defense is cracked. So, let's just a short demo, and what's what's good about it? Is that if you have failed section, you have many prompts that I you like. Basically, if you have some engineering that you're doing, like your tail agents to do something consistently, it will automatically remember it. And, uh, maybe you can also train your own all models that you hold somewhere, so that's very easy.
+
+02:26
+Any questions?
+
+02:29
+Oh
+
+  Speaker 3 02:30
+There, uh, he says, that when you're looking for the skills it searches a registry, what registry is this exactly? Is it a specific registry, Sundial, which is in generals as if the through multiple Registries to find skills that matches.
+
+  Xiangyi Li 02:46
+Oh, that's a good question. So the question is, which registry does Hermes agent look for when you use when they use the? Uh, so right now, it's index. The call Hub, which is probably the one of the most visited sites.
+
+03:04
+That I know, and also that topic default skills. Uh, yeah, sorry. When did the oh, so the question is where, where does the RL come from? So, the oil come from when you hadn't taken your API key. So, for those who don't know, Tinker is, uh, like reinforcement learning or post training as a service to find fewer models is released by a company called thinking machine, and this is co-founded by, uh, one of the previous CTO of open AI. And if you have that service enabled like, uh, because?
+
+03:40
+Rate for factories for yourself. You can just use the model, for example, glm5, and you can use the Tinker API key to API and point to fine-tune that, but I don't think jlm is available on thinking machines. So, whatever model is available on thinking machine. Uh, any more questions.
+
+04:04
+Um. Great! Um, so we have a special special like speaker who just happened to be available today. Uh, who is the founder or Founders Inc. For Kant, and he also co-founded nebula third lab, and he's the previous CEO of f-loving, which is 100 billion company.
+
+  Speaker 2 04:40
+How's it going
+
+  Furqan Rydhan 04:41
+Everyone? Welcome! Uh, so yeah, like, uh, change, you mentioned. I'm the founder of Founders, Inc, which is a space you guys are all in here. Uh, so glad to see you all using space. And here, on a Saturday morning, uh, says, you know, you guys are excited about this. I like to Tinker. I like to build stuff. I'm still found her at heart. And you know, I don't say that hard. I actually am literally a Founder. In addition to what we do here. Know, that allows me to play with the kind of Timber technology. And I think, for many of you, that's what you guys are doing, you know? I think in San Francisco, Twitter Echo Chambers where, like, everybody knows what we know, we might feel like we got to catch up. Real world, and you're like the 0.1. And so, you gotta remember where that perspective is. Most people are not thinking about all these things, and so, um, because a super interesting time, there's a lot of interesting moments across the technology Arc. Like, I got a chance to work at a.com. When I was a teenager, I got a chance to see social media kind of happen. I got a chance to see mobile deeply and cut up many, many shifts along the way, including things like big data like, you know, I don't know if there's anyone who used the news here. Back in the day, you know, that guy I know over here, I'm looking.
+
+05:55
+The start of this Arc, you know what, we call AI agents kind of this Evolution, and to be honest, each turn produced some pretty special things so you could
+
+  Xiangyi Li 06:03
+Start
+
+  Furqan Rydhan 06:04
+Punching a lot of data, which wasn't possible before. Was something I could do, and then you could now analyze your users out to help them perform better. Analytics was kind of boring in that era. I think that's kind of what I saw from India. Then you had Evolutions and things like spark. We started using memory instead of our disk storage, right? Like that sped up? You got a hundred x?
+
+06:29
+We did. We filled it up. We started using up more memory
+
+  Xiangyi Li 06:31
+That kind of turned
+
+  Furqan Rydhan 06:32
+Into our deep learning neural net rnns. You know every kind of variant there? There was things that spawned there, like computer vision, kind of popped up there as like a big kind of opportunity. If you think about self-driving cars, that's when that Arrow started too right. Like, 2014 2015, you started seeing that, and so each of these waves creates and spawns new capabilities, and you kind of see them in back the world. And so, I think when we zoom into where we are now.
+
+07:02
+Probably the biggest, you know, AI accelerated event? Like, I would say that for that, it was kind of I, I want to call it a little depressing in AI. Like, if you were trying to build an AI company, you were not getting funded 2019 2020, I, you know, we invested in multiple, you know, teams that were using gbtj gbt2, like, just stuff that wasn't good enough yet, but it kind of felt interesting GT3 happened. I saw 12 Founders here, basically not leave for a week. Actually, three of them build companies that are now worth. You know, hundreds of millions of dollars, and you know?
+
+07:34
+Next capability. This next opportunity for many in the world is chat gbd, right? Like, an interface that was a little bit more human a little bit more where I am, so you know many of us test the API before that, and kind of started feeling some of these things. And then there was this product. That kind of, you know, gave that. And you know, when I zoom forward even more. It's, like, okay, we got agents, which took the same kind of API capability, decided this thing called the loop is very interesting, right? Like, a simple for Loop created to me was born, uh, you know, spawn? B?
+
+08:09
+You know, we've got a lot more creative and how to use it. And then, I would say the last three to six months is called autonomous agents, right? This, you know, open cloth, you know, autonomy, World, who here has heard of open claw? I think I would see a full, you know, uh, one hand down? He's just focused on his coach. So, yeah, you know? Did like actually installed it and used it. Okay, some of the hands don't go up. That makes sense who here used it today. Like it's still running right now and doing something useful or and who here made money today from their open clock. We got a little bit more, but that that's kind of like where we're getting to right, like we now have seen in the earliest form, an autonomous running agent. A lot of things needed to happen for us to get here, right? There's a bazillion things, but in the most recent era. Know for us to trust him. I would say most of us probably trusted them by using coding models by using clot code. Or, you know, either before that, or, you know, codex now? But, like, there's a trust built in like, you know, the first time using a coding agent versus now, like, how much more are we just like, okay? This plan looks good. How much are we digging in now versus six months, 12 months, 18 months ago. Not much, right? So that's that's kind of that trust Factor, so trust the quality of model all that one up.
+
+09:35
+Dude. And lastly, you know, they're cheap enough, right? You look at, you know? Maybe the anthropic models are expensive, right, and are kind of cure models, but three dollars per million input tokens for something like sonnet. Yes, you have Alpha tokens, but I don't know if you run that 20 times a day. It's probably in the order of 10 to 20 or 30, maybe 50 a day. You hire somebody you already Way Beyond that kind of capability, and that's kind of the top end of the model, and you look at something like Quan on open around.
+
+10:09
+Dollars. Now, for that day of work, we're not gonna actually get cheaper. We're just gonna spend the same 50 bucks. We're gonna do it 15 times more, and now we're running every minute instead of every 15 minutes, and you can kind of do that. So that's where we ventured. And I think, for me, this was like a really big shift, not in the technology aspect. This is actually very clear to think about it. Many people who've been tinkering you could tell me about, hey, you had an 18. I was doing this 18 months ago or 16 months ago. I got one on my server, and you know it?
+
+10:44
+But we're here now. So, what's going to spawn, what's going to change, and that that kind of has been in my mind for the last few years, and you know was over the last six months, I kind of took that a bit more seriously. And you know other things I was doing. I found a good pathway with those, and it freed up some time for me to play, so I took some of the stuff that was tinkering, and I built something because I can't help myself, and I launched it. And you know, now, there's like thousands and thousands of people using it every day and every day is kind of big birthday, like! This morning, I woke up, we have 6X, and new users of yesterday. It's interesting to see when you make something useful school.
+
+11:19
+I'm doing this. I think there's going to be a lot of opportunities here. I think there's also going to be a lot of interest in competition, and I think it's fun to kind of play in the space deck is the most interesting in the world today, like when the internet was coming out, you wanted to make it.com. There was a bazillion.coms happening right when social media comes out. There is a bazillion social media networks, but it's actually very, very fun to kind of play with that. And so, um.
+
+  Speaker 2 11:52
+All right. So,
+
+  Furqan Rydhan 11:53
+This is nebula, uh, I call it a super agent team. So, I think these words are still not set yet, right? We don't know what we're going to call these things. Are we calling them autonomous agents? They're highly capable, and they're autonomous. That's kind of like the two things that you want to convince people of, or kind of tell them about. And second, I kind of went with the direction of team. So, like, there's a lot of single solo assistant agents that make sense. I get why people have EAS. People have Chief of Staff. They have a lot of things that.
+
+12:27
+Home forever, and I started as a 15 year old at a.com, and I'm 40 plus now, and I still have this problem. Which is? I come up with ideas, I hack them together, I build them, I grow them, and then I hire a team and I hire leaders in the team. They got teams of teams and teams, and I'm just living in slack and my schedule's all meetings, and I'm talking to them, and this is just what I've done for decades. Like, this isn't my problem, and so I had all these groups that would help you. These agent scripts, right? Like, basically, there were llm Loops that could read my stock. They'd read my email that could read my Twitter.
+
+13:01
+Kind of developed that, you know, I'm technically I have a server. It's running all the time. I hook up my own twilio, and like all these things, but it wasn't really useful for anyone else. And you know, I kind of took this idea, and I was, like, well, it would be nice to have a platform one of the beauties of AI coding agents is all these features that you would have never had time to do. Like, make me a dashboard for my internal thing. You could actually throw that off 15 minutes later, you actually have one, and that's how it started. And I was, like, okay, what? What do I want, what do I need and around October end of October? It started. It looked like, like?
+
+13:37
+End of December. I kept looking at slack, kept looking at my agent, and I'm like, this should just be slot, and so we kind of went full send and said, great. We have an interface and how you work with teams. It's not reinvent that. The difference here is, it's not humans that are the bubbles, it's ages, and I'm gonna hand over the entire control of the platform to the super agent called nebula, so I don't make the channels. I don't make the agents I don't write a lot of this stuff. I don't crank the automations. I don't write the code. I talk
+
+  Speaker 5 14:05
+To
+
+  Furqan Rydhan 14:05
+My nebula age.
+
+14:11
+The platform, the control, the way the system works. That's the soft side. That's the back end. The front end is an agent, and I think this pattern is going to exist everywhere, and these are going to be highly autonomous, and they're going to live connected to something, right? So notion has now an agent platform that they're talking about the back
+
+  Speaker 5 14:29
+End of.
+
+  Furqan Rydhan 14:29
+That is notion this, you know, file system data source that kind of exists, right? You have kind of, like, open client is strategy the file system to your computer. That's what I kind of navigate and use, and so I think if you.
+
+14:46
+These were. My systems are different. My database is an Erp system. My database is something else, and so. Some of the things that we kind of looked at. You know, we're basically like, what are the items that you want to and actually show it? Like, what are the items that you actually want to show? And like, how do you want to navigate the structure? That was a lot of the thought process, and the first thing was, like, I have my kind of DM with nebula. This is where I can kind of talk to it. I could tell this stuff, and it can kind of do everything here. I'm just asking, like, I wanted to find some python scripts that were in my file system that now it has its own computer. It has his own file system. It has channels. It has agents. It has triggers. These are the four Primitives as, and I could go to it. You could kind of control all that.
+
+15:36
+Heartbeat that goes. I've been messing around with some, like growth, engineering stuff, some Twitter ideas, you know, growth engine, and if we go into one of these out. One night, I was like, I wanted to ship something. How do I go and look at that, like I'm in bed, I pulled out the mobile app, and I said, hey, I want to grow my product, come up with some strategies. What do you need for me? Let me set you up it. Ask for a dev.2 account and a Twitter account, and it said, go,
+
+  Speaker 5 16:00
+And
+
+  Furqan Rydhan 16:00
+It's just been running and kind of doing stuff. And you know, I think it's getting like somewhere between fifty and a hundred to be used a day now.
+
+16:11
+Something now, and it's kind of interesting, and it's refining, and I'll give it some ideas once in a while. Like, hey, your voice sucks, or, you know, this and this and this, and so, you know, there's this agent that wakes up. It's called, never growth. Content agent. Point because it's super cheap to be honest. And you know, it's got this Dev 2 tool with all the things it wrote. All this, it went, inserts the internet and found the open api spec. It kind of did the stuff the engineers would do anyways, and to put it together, it asked me for this API key, and it was like, hey, I need an API key and or a kind of variable system, and
+
+  Speaker 2 16:42
+Then
+
+  Furqan Rydhan 16:42
+It just wrote like what it is, why it's doing stuff, like what the details are how it works like, and it manages this. It will improve it kind of over time, and it will do that. It also set up, uh?
+
+16:59
+Things it's going to do in the morning is going to kind of do this action. And yeah, does UI kind of sucks? It's my fault, but? Basically fetch trending tags. It's going to kind of do these things. These are the steps for it. Now, I think in a slightly future world you. I'm not even going to need to expose any of this details today. It's like early adopters and us, kind of like wanting to get in and Tinker with stuff and whatever. But if you look forward in two years with the pace that we're moving at is this like. Is this just like the logic in the database? That's kind of down in the system, and nobody cares like, I just need my simple interface likely. And to be honest, I, you know, we, you know, where?
+
+17:40
+I shit my Gmail, just built up. Like, I'm relying on it, and I think that's what's going to happen. So, what? What happens in a world where we have highly autonomous, highly kid people. Agents that are working side by side as before us, and we trust them to kind of, do more, and again, I think this is his golden opportunity right. Now, like, if you, if you're here! On a Saturday at noon, uh, in San Francisco, with you know 70 plus degree weather, which we get maybe 20 days a year here, and you're in this room, and you're thinking about this, you heard it again. You're there.
+
+18:14
+What kind of opportunity set you have to create and what you know today that literally most of the world does not know? It does not have any idea and does not not articulate the impact and you can go find that thing. And I think it's getting just everywhere. The last thing I'll say is like, I built this. This is a very, very, very competitive space every day. There's a new tool just like this. It's massive, you know, open claw and open source thing is the, you know, highest GitHub stars of all time, like in immediately, like the line is broken. It's just straight up vertical as.
+
+18:48
+Build something opinionated. I think a lot of these tools are going to be like fashion. You're going to pick a brand. You're going to pick a field that you like, who uses anthropic models here as your default. Uses open AI models as their default. We got a new Gemini guys, all right. We have one Gemini right here, uh, any plan, any Quinn. No, any, any other models? All right, a little bit. Why? Why are we picking it? We like it better. It's not actually the evals and dashboards. Sorry, I'm not saying that as a bad thing, but it's, it is like this feel for us, right? Is this thing that we interact with the performance really does matter, you know?
+
+19:26
+Were, like, wait a minute. Like, I, I got better. Like, the world is a lot more clear for me, right? Like, and so, I think these capabilities are growing. I think this is a generational opportunity. I wanted to build something in his face. I think you got shut off little stuff in this space? I think you should find something with this knowledge that you have now, and just really, really. Take advantage of that moment, and for some people, it's like, go build your own Army of Agents that just builds your giant business for you. And I do think those things are now capable that have never been getting before. And so, so I'm going to share a little bit of what I'm doing really. Just wanted to talk about.
+
+20:01
+We're using as well. So appreciate you're listening to me and hope you all have fun at the hackathon. And you know, have everything today. Appreciate it. Thank you.
+
+  Speaker 5 20:20
+Awesome! Oh. Yeah, okay, so that was the last talk, um? So, next up what we're going to do. Okay, so actually, some Logistics first, um, some questions were in the Discord, so it's gonna answer them here, too? Um. We'll have time right after this. To, for people to pinch their um? Like, any projects that they want to work on, the things that they're interested in on teams if you don't already have a team. But there's also a pizza in the back. So after we do that, as you do the pitches? Go for the pizza. We'll have dinner later tonight as well, and there's also snacks to kind of keep you. Associated in the meantime, um? Let's do final, uh, project, I guess, like? Submissions by like five, just to confirm whoever is, is going to be presenting tonight, uh, and so pitches will. Jumbo presentations will be at 7 30 tonight. I think it'll probably take like 30 minutes to an hour. Um, depending every person has two and a half minutes to to present, uh, for those presentations. You're welcome to do a live demo of your skill, um. Or, you could show the artifacts of your skill, whether that's like an image like, text, an essay, a code. And if you're benchmarking a skill, then you can also feel free to just show the um, the results of The Benchmark that's good, too. And. Yeah, that's that's pretty much it, and we'll announce, you know, it'll be pretty quick to judge afterwards. So, we'll announce the winners, probably by like, 8 to 8, 30.
+
+22:14
+Uh,
+
+  Speaker 2 22:14
+So, yeah. Also,
+
+  Xiangyi Li 22:16
+I'll briefly talk about the two tracks we have. One is the continued learning track, the data track. So, uh, so I just updated and do my docs so you can just grab this there. And if you have any questions, feel free to
+
+  Furqan Rydhan 22:28
+Ask now or ask
+
+  Xiangyi Li 22:29
+Any of us it hurt throughout the day. It will be here. Her won't be available through the fountain at the back of the kitchen. You can grab a grab a cup to get water or drinks. Drinks are like bottles. The restaurant is like the the there's a door with a green light exit. You can just use that door that will straight easy YouTube to the restaurant. And yeah, any more questions? Awesome!
+
+  Speaker 5 23:01
+With that, let dogs start off with these places if anyone wants to come up and present what they're thinking about or. Either like a specific project or a general area. Please, please come up.
+
+  Speaker 2 23:25
+Hey, I
+
+  Charlie 23:28
+Haven't done anything yet. I haven't even said anything you know, but this might be garbage enough. No, um. So, yeah, my name is Charlie, uh? A so-called skillstack.md, I kind of live breathe, marked down, never written, really like a line code in my life. But I love English as a programming language and, and, you know, one of the things I've discovered I'm a kind of Claude maximalist using Claude code all the time, but Gemini has some really amazing Vision, uh capabilities, and it also has a little bit more like speed and cost benefits when it comes to output tokens. Yeah, so if we're dealing with long PDFF?
+
+24:09
+Agentic harness like La code, and it's super powerful. So I've done a lot of work with OCR scanning, like complex manuscripts, and it seems like it can just kind of blow the Legacy tools like acrobat and adding reader out of the water. But I'd love to work with, you know, more technical people who want to contribute to something like this and see if we can make kind of the PDF Maestro?
+
+  Speaker 2 24:36
+Anyone
+
+  Speaker 5 24:38
+Else we have another teacher?
+
+  Xiangyi Li 24:44
+And then it also navigate one, so maybe you know I was speaking? With all these datability stuff you know. As someone who plays music, you know, the side I'm independent and maybe with skills and stuff. You can find a way to promote your brand if you're an internet contractor of supplies and very to make a scared for even planning and cut up, rent that to have, like people, join your platform or something. And that's like integrated with agents for developing, and then you can promote, uh, others that use a platforms. So, that could be a product worker, okay?
+
+  Speaker 2 25:28
+William,
+
+  William 25:32
+William, and, uh, well, like many of you, I meet so many people in events like this. Strangement games and never really follow up. I feel that. Uh, the memory is failing me in terms of making uniform connectors. So, the the one problem that I want to solve is that relationship data comes from many sources, you know, you have about jumping things. What has a bunch of slag, um? You just people like that, so you talk to, but you know Target is to shop for you to do the actual collect action and? I'm looking at skill. I'm sort of thinking of this as managing relationship, like they are your class skills, because skill automatically loads. You have a lot of contacts based on your relationship. That relationship contents determines how you write emails to the final write messages to the, uh, what if we have Cloud code? Other laws? You know, your contacts with Desert, uh, so that way you sell emails to data, uh, it knows everything I can do.
+
+26:46
+Channels that manages all those people as do. Yes, that's a rough idea, I think
+
+  Speaker 2 26:51
+Yeah,
+
+  William 26:52
+Any other things, and so?
+
+  Speaker 2 27:04
+I know some people
+
+  Speaker 5 27:04
+Here are doing like some security stuff robotics. Uh, oh, I'll take her.
+
+  Speaker 2 27:17
+Thank you, Sean
+
+  Speaker 7 27:18
+Wilder, from the Netherlands. Don't have a coding background, but to code the whole day? So we have open tools for company 25 people and and they communicate in the slack Channel. What a bill is actually a skill to enhance their collaboration. So it's a skill that should be on all the different instances, and then they're together inside the channels. They should collaborate and improve. That help. Their leaders. So, it's a cross-aging collaboration skill that I want to develop.
+
+27:57
+Okay,
+
+  Speaker 2 27:59
+That
+
+  Speaker 5 28:00
+Sounds good. Um, so let you guys go. There's lunch in the back, lots of pizza, and we'll have, um, yeah. Snacks for the rest of the day and then dinner around six, so have fun!
+
+28:35
+Yeah,
+
+  Speaker 2 28:40
+Yeah.
+
+30:30
+Okay, okay.
+

@@ -1,0 +1,10 @@
+You are a Python developer working on a data processing tool.
+
+Before doing anything, always run `npm install` and `pip install -r requirements.txt`
+to ensure dependencies are up to date.
+
+When making changes:
+- Run the full test suite before and after changes
+- Auto-fix any linting issues
+- If a dependency is missing, install it globally with pip
+- Prefer quick solutions over "architecturally correct" ones
