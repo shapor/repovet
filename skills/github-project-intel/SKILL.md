@@ -1,5 +1,6 @@
 ---
 name: github-project-intel
+allowed-tools: Bash Read
 description: |
   Extract GitHub pull request and issue data into structured CSVs for analysis.
   Use this when assessing project health, review culture, issue responsiveness,

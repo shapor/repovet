@@ -1,5 +1,6 @@
 ---
 name: repo-trust-assessment
+allowed-tools: Bash Read Glob Grep Write Task
 description: |
   Orchestrate a full trust assessment of a code repository. This is the top-level
   RepoVet skill that coordinates all 12 sub-skills, calculates a trust score (0-10),
@@ -79,23 +80,27 @@ All scripts live in the repository root `scripts/` directory:
 
 ### Phase 2: Data Extraction
 
-Run these three extraction steps sequentially:
+Run these in parallel using background tasks where possible:
 
 **2a -- Git history** (uses `git-commit-intel` skill):
 ```bash
 python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE_DIR/commits.csv"
 ```
 
-**2b -- GitHub metadata** (uses `github-project-intel` skill; skip if `gh auth status` fails):
+**2b -- GitHub metadata** (run in background — takes longer due to API pagination):
 ```bash
-python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE_DIR/prs.csv"
-python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE_DIR/issues.csv"
+# Run in background while other steps proceed
+python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE_DIR/prs.csv" &
+python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE_DIR/issues.csv" &
 ```
+Skip if `gh auth status` fails.
 
-**2c -- Config file discovery**:
+**2c -- Config file discovery** (fast, run immediately):
 ```bash
 python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE_DIR/discovery.json"
 ```
+
+Steps 2a and 2c are fast (<10s). Step 2b can take minutes for large repos — start it in the background and proceed with analysis on commits.csv and discovery.json while PRs/issues are still downloading.
 
 ### Phase 3: Analysis (can run in parallel)
 

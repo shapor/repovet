@@ -1,5 +1,6 @@
 ---
 name: git-analytics-sql
+allowed-tools: Bash Read
 description: |
   Run SQL analytics against git commit history, PR, and issue data using DuckDB.
   Use this skill when the user wants to query, analyze, slice, or explore git

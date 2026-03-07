@@ -1,5 +1,6 @@
 ---
 name: git-commit-intel
+allowed-tools: Bash Read
 description: |
   Extract comprehensive git commit history from any repository into a structured
   CSV for analysis. Use this when assessing repository trust, analyzing contributor
