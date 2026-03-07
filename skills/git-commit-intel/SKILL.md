@@ -35,37 +35,37 @@ The script lives at `scripts/git-history-to-csv.py` relative to the skillathon p
 ### Basic: current repo
 
 ```bash
-python scripts/git-history-to-csv.py -o ~/.repovet/cache/{repo-name}/commits.csv
+.venv/bin/python scripts/git-history-to-csv.py -o ~/.repovet/cache/{repo-name}/commits.csv
 ```
 
 ### Specify a repo path
 
 ```bash
-python scripts/git-history-to-csv.py /path/to/repo -o ~/.repovet/cache/{repo-name}/commits.csv
+.venv/bin/python scripts/git-history-to-csv.py /path/to/repo -o ~/.repovet/cache/{repo-name}/commits.csv
 ```
 
 ### Multiple repos at once
 
 ```bash
-python scripts/git-history-to-csv.py /path/to/repo1 /path/to/repo2 -o commits.csv
+.venv/bin/python scripts/git-history-to-csv.py /path/to/repo1 /path/to/repo2 -o commits.csv
 ```
 
 ### Limit to last N commits (faster for large repos)
 
 ```bash
-python scripts/git-history-to-csv.py -n 500 /path/to/repo -o commits.csv
+.venv/bin/python scripts/git-history-to-csv.py -n 500 /path/to/repo -o commits.csv
 ```
 
 ### Include all branches (not just current)
 
 ```bash
-python scripts/git-history-to-csv.py --all /path/to/repo -o commits.csv
+.venv/bin/python scripts/git-history-to-csv.py --all /path/to/repo -o commits.csv
 ```
 
 ### Enrich with GitHub PR data
 
 ```bash
-python scripts/git-history-to-csv.py --github /path/to/repo -o commits.csv
+.venv/bin/python scripts/git-history-to-csv.py --github /path/to/repo -o commits.csv
 ```
 
 This adds PR metadata to each commit by querying the GitHub GraphQL API. Requires
@@ -151,7 +151,7 @@ Assess a repo before adoption:
 
 ```
 1. Clone the repo locally
-2. Run: python scripts/git-history-to-csv.py --all -n 1000 /path/to/repo \
+2. Run: .venv/bin/python scripts/git-history-to-csv.py --all -n 1000 /path/to/repo \
        -o ~/.repovet/cache/github.com/owner/repo/commits.csv
 3. Pass commits.csv to contributor-analysis skill
 4. Pass commits.csv to repo-health-analysis skill

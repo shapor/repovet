@@ -40,8 +40,8 @@ If CSVs don't exist yet, extract them first:
 REPO=/path/to/repo
 CACHE=~/.repovet/cache/$(basename $REPO)
 mkdir -p "$CACHE"
-python scripts/git-history-to-csv.py "$REPO" -o "$CACHE/commits.csv"
-python scripts/github-to-csv.py "$REPO" --prs --issues -o "$CACHE/github.csv"  # optional
+.venv/bin/python scripts/git-history-to-csv.py "$REPO" -o "$CACHE/commits.csv"
+.venv/bin/python scripts/github-to-csv.py "$REPO" --prs --issues -o "$CACHE/github.csv"  # optional
 ```
 
 ## Querying with DuckDB
@@ -88,13 +88,13 @@ SQL
 For a full visual report with GitHub-style heatmap, colored bar charts, and sparklines:
 
 ```bash
-python scripts/repovet-display.py commits.csv
+.venv/bin/python scripts/repovet-display.py commits.csv
 ```
 
 For a markdown report with health score:
 
 ```bash
-python scripts/repovet-analyze.py commits.csv
+.venv/bin/python scripts/repovet-analyze.py commits.csv
 ```
 
 ## Available Columns

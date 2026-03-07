@@ -84,20 +84,20 @@ Run these in parallel using background tasks where possible:
 
 **2a -- Git history** (uses `git-commit-intel` skill):
 ```bash
-python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE_DIR/commits.csv"
+.venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE_DIR/commits.csv"
 ```
 
 **2b -- GitHub metadata** (run in background — takes longer due to API pagination):
 ```bash
 # Run in background while other steps proceed
-python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE_DIR/prs.csv" &
-python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE_DIR/issues.csv" &
+.venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE_DIR/prs.csv" &
+.venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE_DIR/issues.csv" &
 ```
 Skip if `gh auth status` fails.
 
 **2c -- Config file discovery** (fast, run immediately):
 ```bash
-python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE_DIR/discovery.json"
+.venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE_DIR/discovery.json"
 ```
 
 Steps 2a and 2c are fast (<10s). Step 2b can take minutes for large repos — start it in the background and proceed with analysis on commits.csv and discovery.json while PRs/issues are still downloading.

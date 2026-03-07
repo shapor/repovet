@@ -36,19 +36,19 @@ The script lives at `scripts/github-to-csv.py` relative to the skillathon projec
 ### Export PRs from current repo
 
 ```bash
-python scripts/github-to-csv.py --prs -o ~/.repovet/cache/{repo-name}/prs.csv
+.venv/bin/python scripts/github-to-csv.py --prs -o ~/.repovet/cache/{repo-name}/prs.csv
 ```
 
 ### Export issues from current repo
 
 ```bash
-python scripts/github-to-csv.py --issues -o ~/.repovet/cache/{repo-name}/issues.csv
+.venv/bin/python scripts/github-to-csv.py --issues -o ~/.repovet/cache/{repo-name}/issues.csv
 ```
 
 ### Export both (output splits into two files automatically)
 
 ```bash
-python scripts/github-to-csv.py --prs --issues -o ~/.repovet/cache/{repo-name}/data.csv
+.venv/bin/python scripts/github-to-csv.py --prs --issues -o ~/.repovet/cache/{repo-name}/data.csv
 ```
 
 This produces `data_prs.csv` and `data_issues.csv`.
@@ -56,7 +56,7 @@ This produces `data_prs.csv` and `data_issues.csv`.
 ### Explicit GitHub repo (no local clone needed)
 
 ```bash
-python scripts/github-to-csv.py --prs --issues \
+.venv/bin/python scripts/github-to-csv.py --prs --issues \
     --repo owner/repo-name \
     -o ~/.repovet/cache/github.com/owner/repo-name/data.csv
 ```
@@ -64,7 +64,7 @@ python scripts/github-to-csv.py --prs --issues \
 ### Multiple repos
 
 ```bash
-python scripts/github-to-csv.py --prs --issues \
+.venv/bin/python scripts/github-to-csv.py --prs --issues \
     --repo owner/repo1 --repo owner/repo2 \
     -o output.csv
 ```
@@ -72,7 +72,7 @@ python scripts/github-to-csv.py --prs --issues \
 ### From local repo directories
 
 ```bash
-python scripts/github-to-csv.py --prs ~/src/my-repo -o prs.csv
+.venv/bin/python scripts/github-to-csv.py --prs ~/src/my-repo -o prs.csv
 ```
 
 The script auto-detects the GitHub remote from the git origin URL.
@@ -179,7 +179,7 @@ distinguish human engagement from automation noise.
 Assess a repo's project health:
 
 ```
-1. Run: python scripts/github-to-csv.py --prs --issues \
+1. Run: .venv/bin/python scripts/github-to-csv.py --prs --issues \
        --repo owner/repo \
        -o ~/.repovet/cache/github.com/owner/repo/data.csv
 2. This produces data_prs.csv and data_issues.csv
