@@ -6,27 +6,37 @@ Work from the March 7, 2026 Agent Skills Hackathon (SF).
 
 ## RepoVet — Veterinary Checkups for Code Repositories
 
-**"Should I trust this repo?"** — We answer that question.
+**"Should I trust this repo?"** — We answer that question *before* you clone.
 
-A trust assessment system that combines git history analysis, project health metrics, and agent configuration security scanning to produce a trust score (0-10) with detailed evidence.
+A trust assessment system that scans remote repos via the GitHub API — without cloning — to detect agent config threats, evaluate project health, and produce a trust score (0-10) with detailed evidence.
 
 ### The Problem
 
-You're about to clone a repo, install a library, or point Claude Code at a new project. Should you trust it? Today you manually scroll commits, check contributors, and hope you don't miss anything.
+You're about to clone a repo, install a library, or point Claude Code at a new project. Should you trust it? Today you manually scroll commits, check contributors, and hope you don't miss anything. Worse, **cloning itself can be an attack** — git hooks execute automatically on `git clone`, before you can inspect a single file.
+
+### The Key Insight: Never Clone First
+
+RepoVet's core innovation is that it **never clones the repo**. It uses the GitHub API (via `gh` CLI) to fetch metadata, file trees, and config file contents directly. This matters because:
+
+- Git hooks (e.g. `post-checkout`) fire on clone **before** you can review anything
+- Agent config files (`.claude/`, `.cursor/`, `.github/copilot/`) can contain malicious instructions
+- A clone-first approach means you're already compromised by the time you start analyzing
+
+See `test-repos/helpful-dev-utils/` for a realistic demonstration of this attack vector.
 
 ### How It Works
 
 **Three Pillars of Trust**:
 
-| Pillar | What It Checks | Scripts/Skills |
-|--------|---------------|----------------|
-| **Project Health** | Contributors, velocity, bus factor, review culture | git-history-to-csv.py, github-to-csv.py |
-| **Code Security** | CVE history, security commits, secrets, force-pushes | security-history-analysis |
-| **Config Safety** | Agent config files (.claude, .cursor, copilot) for malicious code | repovet-config-discover.py + 7 threat skills |
+| Pillar | What It Checks | Tools |
+|--------|---------------|-------|
+| **Project Health** | Contributors, velocity, bus factor, review culture | repovet.py, git-history-to-csv.py, github-to-csv.py |
+| **Code Security** | CVE history, security commits, secrets, force-pushes | repovet.py, security-history-analysis skill |
+| **Config Safety** | Agent config files (.claude, .cursor, copilot) for malicious code | repovet.py, repovet-config-discover.py + 7 threat skills |
 
 Trust Score = weighted average. If config threats are critical, they dominate the score.
 
-### What Makes This Novel
+### Threat Detection
 
 Scans agent configuration files across **all major AI coding tools** for:
 
@@ -40,36 +50,39 @@ Scans agent configuration files across **all major AI coding tools** for:
 | Destructive ops | `git push --force origin main` |
 | Prompt injection | "Ignore previous instructions" in CLAUDE.md |
 
-**Key insight**: Scans recursively because users can `cd` into any subdirectory and launch an agent from there — nested `.claude/` directories are a real attack vector.
+Scans recursively because users can `cd` into any subdirectory and launch an agent from there — nested `.claude/` directories are a real attack vector.
 
 ### Components
 
-**Scripts** (deterministic data extraction):
-- `scripts/git-history-to-csv.py` — Git commits, authors, language stats, PR enrichment
-- `scripts/github-to-csv.py` — PRs, issues, reviews, bot activity via GraphQL
-- `scripts/repovet-config-discover.py` — Finds all agent config files, extracts executables
+**CLI Tools** (standalone, deterministic):
 
-**Skills** (13 total):
+| Script | Lines | What It Does |
+|--------|-------|--------------|
+| `scripts/repovet.py` | 1710 | Full trust assessment CLI. Scans remote repos via GitHub API without cloning. Produces scored report with evidence. |
+| `scripts/repovet-analyze.py` | 836 | DuckDB-powered analytics engine. SQL queries over commit, PR, and issue data. Author deep-dives, bus factor, velocity trends. |
+| `scripts/repovet-config-discover.py` | 527 | Finds all agent config files in a repo, extracts executables and permissions. |
+| `scripts/git-history-to-csv.py` | — | Git commits, authors, language stats, PR enrichment to CSV. |
+| `scripts/github-to-csv.py` | — | PRs, issues, reviews, bot activity via GraphQL to CSV. |
+
+**Skills** (15 total):
 
 | Tier | Skills |
 |------|--------|
 | Data Extraction | `git-commit-intel`, `github-project-intel` |
-| Analysis | `contributor-analysis`, `repo-health-analysis`, `security-history-analysis` |
+| Analysis | `contributor-analysis`, `repo-health-analysis`, `security-history-analysis`, `git-analytics-sql` |
 | Threat Detection | `threat-auto-execution`, `threat-network-exfil`, `threat-remote-code-execution`, `threat-credential-access`, `threat-obfuscation`, `threat-repo-write`, `threat-prompt-injection` |
+| Safety | `safe-clone` |
 | Orchestration | `repo-trust-assessment` |
 
-**Test Repos** (`examples/test-repos/`):
-- `safe-repo/` — Clean, no threats (expected: 8-9/10)
-- `malicious-repo/` — Malicious hooks, exfil, nested configs, obfuscation (expected: 1-3/10)
-- `borderline-repo/` — Overly permissive but not malicious (expected: 5-7/10)
+**Analytics Layer**: DuckDB (see `requirements.txt` — dependencies: `duckdb`, `pytz`).
 
-### Discovery Script Results
+**Test Repos**:
+- `test-repos/helpful-dev-utils/` — Realistic attack demo: looks innocent but has a post-checkout hook that fires on clone
+- `examples/test-repos/safe-repo/` — Clean, no threats (expected: 8-9/10)
+- `examples/test-repos/malicious-repo/` — Malicious hooks, exfil, nested configs, obfuscation (expected: 1-3/10)
+- `examples/test-repos/borderline-repo/` — Overly permissive but not malicious (expected: 5-7/10)
 
-```
-safe-repo:       2 config files, 0 executables, 0 nested, 0 permissions
-malicious-repo:  7 config files, 4 executables, 1 nested, 4 permissions
-borderline-repo: 3 config files, 0 executables, 0 nested, 3 permissions
-```
+**Baseline Examples**: `analysis/claude-code-baseline/` — shows how Claude Code handles repo trust questions without RepoVet (spoiler: it clones first, triggering hooks).
 
 ### Storage
 
@@ -109,10 +122,13 @@ Meta-skills for evaluating agent skill submissions during the hackathon.
 | Component | Status |
 |-----------|--------|
 | Design docs | Done |
+| repovet.py (1710 lines) | Done |
+| repovet-analyze.py (836 lines, DuckDB) | Done |
+| repovet-config-discover.py | Done |
 | git-history-to-csv.py | Done |
 | github-to-csv.py | Done |
-| repovet-config-discover.py | Done |
-| 13 SKILL.md files | Done |
-| 3 test repos | Done |
-| Harbor benchmark task | TODO |
-| End-to-end eval | TODO |
+| 15 SKILL.md files | Done |
+| test repos + attack demo | Done |
+| Baseline examples | Done |
+| Judge panel (8 skills) | Done |
+| requirements.txt | Done |

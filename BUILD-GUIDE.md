@@ -1,6 +1,10 @@
+> **Note**: This was the original build plan. All core components are now **IMPLEMENTED**.
+> See [STATUS.md](STATUS.md) for current project state.
+> The detailed specs below remain useful as design reference.
+
 # RepoVet Build Guide
 
-**Status**: Design complete, ready to implement
+**Status**: ~~Design complete, ready to implement~~ **All core components built**
 **Target**: Working demo + Harbor task by end of hackathon
 **Time Budget**: ~6-8 hours remaining
 
@@ -29,7 +33,7 @@
 **Purpose**: Find all agent config files, extract executable code
 **Output**: JSON with discovered files + executables
 **Time**: 2 hours
-**Status**: ❌ Not started
+**Status**: ✅ Complete
 
 #### 2. RepoVet Skills (Priority 2)
 13 skills that work together:
@@ -56,19 +60,19 @@
 - `skills/repo-trust-assessment/` — Runs all skills, calculates trust score
 
 **Time**: 3-4 hours total
-**Status**: ❌ Not started
+**Status**: ✅ Complete (all 13 skills built, plus additional judge/analytics skills)
 
 #### 3. Test Repos (Priority 3)
 **Purpose**: Known-good and known-bad repos for testing/demo
 **Location**: `examples/test-repos/`
 **Time**: 1 hour
-**Status**: ❌ Not started
+**Status**: ✅ Complete (safe-repo, malicious-repo, borderline-repo)
 
 #### 4. Harbor Task (Priority 4)
 **Purpose**: Benchmark task for proving skills work
 **Location**: `harbor-task/`
 **Time**: 1-2 hours
-**Status**: ❌ Not started
+**Status**: ❌ Not built (deprioritized)
 
 ---
 
@@ -391,23 +395,23 @@ def calculate_trust_score(
 ## Checklist for Completion
 
 ### Core Functionality
-- [ ] Discovery script finds all config files
-- [ ] Discovery script extracts executables
-- [ ] Discovery script handles nested configs
-- [ ] Git commit intel skill works
-- [ ] GitHub project intel skill works
-- [ ] Contributor analysis produces insights
-- [ ] Repo health analysis calculates metrics
-- [ ] All 6 threat skills detect their patterns
-- [ ] Orchestrator calculates trust score
-- [ ] Trust report is human-readable
+- [x] Discovery script finds all config files
+- [x] Discovery script extracts executables
+- [x] Discovery script handles nested configs
+- [x] Git commit intel skill works
+- [x] GitHub project intel skill works
+- [x] Contributor analysis produces insights
+- [x] Repo health analysis calculates metrics
+- [x] All 6 threat skills detect their patterns
+- [x] Orchestrator calculates trust score
+- [x] Trust report is human-readable
 
 ### Testing
-- [ ] Safe repo scores 8+
-- [ ] Malicious repo scores <4
-- [ ] Borderline repo scores 5-7
-- [ ] All threat types detected correctly
-- [ ] Nested configs flagged
+- [x] Safe repo scores 8+
+- [x] Malicious repo scores <4
+- [x] Borderline repo scores 5-7
+- [x] All threat types detected correctly
+- [x] Nested configs flagged
 
 ### Harbor Task
 - [ ] task.toml valid
@@ -418,16 +422,16 @@ def calculate_trust_score(
 - [ ] Deterministic verifiers pass
 
 ### Documentation
-- [ ] Root README.md updated
-- [ ] repovet/README.md written
-- [ ] Each skill has clear SKILL.md
-- [ ] Presentation script ready
+- [x] Root README.md updated
+- [x] repovet/README.md written
+- [x] Each skill has clear SKILL.md
+- [x] Presentation script ready
 
 ### Demonstration
-- [ ] Can run live demo
-- [ ] Shows safe vs malicious comparison
-- [ ] Explains trust score breakdown
-- [ ] Shows specific threat findings
+- [x] Can run live demo
+- [x] Shows safe vs malicious comparison
+- [x] Explains trust score breakdown
+- [x] Shows specific threat findings
 
 ---
 
@@ -447,37 +451,52 @@ ideas/                          ✅ Design docs complete
 └── future-enhancements.md
 ```
 
-### To Build
+### Built (originally planned)
 ```
 scripts/
-└── repovet-config-discover.py  ❌ Not started (Priority 1)
+├── repovet-config-discover.py  ✅ Complete
+├── repovet.py                  ✅ Complete (1710 lines) — CLI tool
+└── repovet-analyze.py          ✅ Complete (836 lines) — DuckDB analytics
 
-skills/                         ❌ Not started (Priority 2)
-├── git-commit-intel/
-├── github-project-intel/
-├── contributor-analysis/
-├── repo-health-analysis/
-├── security-history-analysis/
-├── threat-auto-execution/
-├── threat-network-exfil/
-├── threat-remote-code-execution/
-├── threat-credential-access/
-├── threat-obfuscation/
-├── threat-repo-write/
-├── threat-prompt-injection/
-└── repo-trust-assessment/
+skills/                         ✅ All 13 planned skills complete
+├── git-commit-intel/           ✅
+├── github-project-intel/       ✅
+├── contributor-analysis/       ✅
+├── repo-health-analysis/       ✅
+├── security-history-analysis/  ✅
+├── threat-auto-execution/      ✅
+├── threat-network-exfil/       ✅
+├── threat-remote-code-execution/ ✅
+├── threat-credential-access/   ✅
+├── threat-obfuscation/         ✅
+├── threat-repo-write/          ✅
+├── threat-prompt-injection/    ✅
+└── repo-trust-assessment/      ✅
 
-examples/test-repos/            ❌ Not started (Priority 3)
+examples/test-repos/            ✅ Complete
 ├── safe-repo/
 ├── malicious-repo/
 └── borderline-repo/
 
-harbor-task/                    ❌ Not started (Priority 4)
-├── task.toml
-├── instruction.md
-├── environment/
-├── solution/
-└── tests/
+harbor-task/                    ❌ Not built (deprioritized)
+```
+
+### Built (not in original plan)
+```
+scripts/
+├── repovet.py                  ✅ (1710 lines) — Full CLI tool for repo trust assessment
+└── repovet-analyze.py          ✅ (836 lines) — DuckDB-based analytics engine
+
+skills/
+├── git-analytics-sql/          ✅ SQL query skill for git data analysis
+├── judge-belinda-mo/           ✅ Judge persona skill
+├── judge-bence-nagy/           ✅ Judge persona skill
+├── judge-furqan-rydhan/        ✅ Judge persona skill
+├── judge-grace-zhang/          ✅ Judge persona skill
+├── judge-panel/                ✅ Judge panel orchestrator
+├── judge-roey-ben-chaim/       ✅ Judge persona skill
+├── judge-ryan-marten/          ✅ Judge persona skill
+└── judge-xiangyi-li/           ✅ Judge persona skill
 ```
 
 ---
@@ -527,5 +546,5 @@ If you're picking up this work:
 
 ---
 
-**Last Updated**: 2026-03-07 14:30
-**Next Agent Should Start With**: Discovery script (`repovet-config-discover.py`)
+**Last Updated**: 2026-03-07
+**Status**: All core components implemented. See [STATUS.md](STATUS.md) for current state.
