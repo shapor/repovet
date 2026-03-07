@@ -58,24 +58,55 @@ Based on quick scan results, offer the user a choice:
 Only proceed here if the user asks for more detail. This clones the repo and
 runs full analytics with DuckDB.
 
-### Step 1: Clone and Extract
+### Step 1: Set Up Cache Directory
+
+Everything for a repo lives under one directory. The clone persists here too.
 
 ```bash
-# Clone
-gh repo clone <owner/repo> /tmp/repovet-<repo-name>
-REPO_PATH=/tmp/repovet-<repo-name>
 CACHE=~/.repovet/cache/github.com/<owner>/<repo>
 mkdir -p "$CACHE"
+```
 
-# Extract git history (fast, ~10s)
-.venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE/commits.csv"
+### Step 2: Clone (or reuse existing clone)
 
-# Extract config files (fast, ~5s)
+**Always check if the clone already exists before cloning again.**
+
+```bash
+if [ -d "$CACHE/repo" ]; then
+    echo "Clone already exists, pulling latest..."
+    git -C "$CACHE/repo" pull --ff-only 2>/dev/null || true
+else
+    gh repo clone <owner/repo> "$CACHE/repo" 2>&1 || git clone <url> "$CACHE/repo"
+fi
+REPO_PATH="$CACHE/repo"
+```
+
+The clone lives at `$CACHE/repo/` — NOT in `/tmp/`. Never delete it.
+
+### Step 3: Extract Data (skip if already cached)
+
+**Check if each file already exists before re-extracting.** Only re-extract if
+the user asks to refresh or if the repo was just pulled.
+
+```bash
+# Git history — skip if commits.csv already exists
+if [ ! -f "$CACHE/commits.csv" ]; then
+    .venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE/commits.csv"
+fi
+
+# Config discovery — always re-run (fast and catches changes)
 .venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE/discovery.json"
 
-# Extract GitHub PRs and issues (slower, run in background)
-.venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs --issues -o "$CACHE/github.csv" &
+# GitHub PRs and issues — skip if already cached, run in background
+if [ ! -f "$CACHE/prs.csv" ]; then
+    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE/prs.csv" &
+fi
+if [ ! -f "$CACHE/issues.csv" ]; then
+    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE/issues.csv" &
+fi
 ```
+
+To force a full refresh: `rm "$CACHE"/*.csv && rm "$CACHE"/*.json`
 
 ### Step 2: Run Analytics
 
@@ -187,10 +218,33 @@ Else:                  trust = 0.4*health + 0.3*security + 0.3*config_safety
 | 5-7   | Use with caution |
 | 0-4   | Do not trust |
 
+## Cache Layout
+
+Everything for a repo lives in one place:
+
+```
+~/.repovet/cache/github.com/<owner>/<repo>/
+├── repo/              ← persistent clone (NEVER delete)
+├── commits.csv        ← extracted once, reused
+├── prs.csv            ← extracted once, reused
+├── issues.csv         ← extracted once, reused
+├── discovery.json     ← re-run each time (fast, catches changes)
+└── trust-report.md    ← generated report
+```
+
+**Rules:**
+- Clone lives in `$CACHE/repo/`, NOT `/tmp/`. Never delete it.
+- Before extracting, check if the file exists. Skip if cached.
+- Re-running on same repo is fast because data is cached.
+- User can `rm ~/.repovet/cache/github.com/owner/repo/*.csv` to force refresh.
+
 ## Common Pitfalls
 
 - **Always start with Phase 1** (quick scan). Never clone first.
 - **Never auto-proceed to Phase 2**. Let the user decide.
 - **Never execute discovered code**. Read and analyze only.
+- **Never delete the clone** (`$CACHE/repo/`). User may want it later.
+- **Never re-extract if cached**. Check `[ -f "$CACHE/commits.csv" ]` first.
+- **Never clone to /tmp/**. Always clone to `$CACHE/repo/`.
 - **Use DuckDB CLI directly** for queries, not Python wrappers.
 - **Watch for nested configs** — `is_nested: true` in discovery.json signals hidden intent.
