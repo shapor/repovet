@@ -22,25 +22,34 @@ Query git/GitHub data with SQL using DuckDB CLI. No Python needed — just SQL.
 - User wants a custom analysis not covered by canned reports
 - User asks about PR review culture, issue health, contributor patterns
 
-## Step 1: Extract Data
+## Data Location
 
-Run the extraction scripts to produce CSV files:
+CSVs live in the RepoVet cache directory:
 
-```bash
-# Git commit history → commits.csv
-python scripts/git-history-to-csv.py /path/to/repo -o commits.csv
-
-# GitHub PRs and issues (optional, requires gh CLI)
-python scripts/github-to-csv.py /path/to/repo --prs --issues -o github.csv
-# Produces: github_prs.csv and github_issues.csv
+```
+~/.repovet/cache/{repo-name}/
+├── commits.csv       # from git-commit-intel skill
+├── prs.csv           # from github-project-intel skill (optional)
+└── issues.csv        # from github-project-intel skill (optional)
 ```
 
-## Step 2: Query with DuckDB
-
-Use the `duckdb` CLI directly on the CSV files. DuckDB reads CSVs natively — just reference the filename in SQL:
+If CSVs don't exist yet, extract them first:
 
 ```bash
-duckdb -c "SELECT author_name, COUNT(*) as commits FROM 'commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+REPO=/path/to/repo
+CACHE=~/.repovet/cache/$(basename $REPO)
+mkdir -p "$CACHE"
+python scripts/git-history-to-csv.py "$REPO" -o "$CACHE/commits.csv"
+python scripts/github-to-csv.py "$REPO" --prs --issues -o "$CACHE/github.csv"  # optional
+```
+
+## Querying with DuckDB
+
+Use the `duckdb` CLI directly on the CSV files. DuckDB reads CSVs natively — just reference the path in SQL:
+
+```bash
+CACHE=~/.repovet/cache/harbor
+duckdb -c "SELECT author_name, COUNT(*) as commits FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
 ```
 
 ### Output Formats
