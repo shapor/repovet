@@ -55,8 +55,13 @@ Based on quick scan results, offer the user a choice:
 
 ## Phase 2: Deep Dive (Clone + Full Analysis)
 
-Only proceed here if the user asks for more detail. This clones the repo and
-runs full analytics with DuckDB.
+Only proceed here if the user asks for more detail.
+
+**CRITICAL RULES — READ BEFORE DOING ANYTHING:**
+- **NEVER clone to /tmp/**. Clone to `~/.repovet/cache/github.com/<owner>/<repo>/repo/`
+- **NEVER `rm -rf` any clone.** Clones are cached and reused.
+- **NEVER re-extract data that already exists.** Check `[ -f file ]` first.
+- **NEVER run `rm -rf /tmp/repovet-*`**. There is no cleanup step. Data persists.
 
 ### Step 1: Set Up Cache Directory
 
