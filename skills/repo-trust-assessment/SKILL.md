@@ -11,8 +11,12 @@ description: |
   "Is this open-source library safe?", "Due diligence on this repo", "Repo risk
   assessment", "Supply chain check", "Should I open this in Claude Code?", "Is this
   repo malicious?", "Scan this repo for threats", "Repository security audit",
-  "Pre-adoption review", "Dependency trust check", "OSS evaluation".
-  Do NOT use this for general code review, writing code, or non-repo-related tasks.
+  "Pre-adoption review", "Dependency trust check", "OSS evaluation",
+  "Tell me about this repo", "What is this repo?", "Analyze this repo",
+  "Who built this?", "Is this maintained?", "What does this repo do?",
+  "Give me a report on this repo", "Repo overview", "Repo summary".
+  Trigger whenever the user shares a GitHub URL and wants to understand it.
+  Do NOT use for writing code or non-repo-related tasks.
 ---
 
 # RepoVet: Repository Trust Assessment
