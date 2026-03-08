@@ -60,7 +60,7 @@ Based on quick scan results, offer the user a choice:
 Only proceed here if the user asks for more detail.
 
 **CRITICAL RULES — READ BEFORE DOING ANYTHING:**
-- **NEVER clone to /tmp/**. Clone to `~/.repovet/cache/github.com/<owner>/<repo>/repo/`
+- **NEVER clone to /tmp/**. Clone to `$HOME/.repovet/cache/github.com/<owner>/<repo>/repo/`
 - **NEVER `rm -rf` any clone.** Clones are cached and reused.
 - **NEVER re-extract data that already exists.** Check `[ -f file ]` first.
 - **NEVER run `rm -rf /tmp/repovet-*`**. There is no cleanup step. Data persists.
@@ -70,7 +70,7 @@ Only proceed here if the user asks for more detail.
 Everything for a repo lives under one directory. The clone persists here too.
 
 ```bash
-CACHE=~/.repovet/cache/github.com/<owner>/<repo>
+CACHE=$HOME/.repovet/cache/github.com/<owner>/<repo>
 mkdir -p "$CACHE"
 ```
 
@@ -251,7 +251,7 @@ Else:                  trust = 0.4*health + 0.3*security + 0.3*config_safety
 Everything for a repo lives in one place:
 
 ```
-~/.repovet/cache/github.com/<owner>/<repo>/
+$HOME/.repovet/cache/github.com/<owner>/<repo>/
 ├── repo/              ← persistent clone (NEVER delete)
 ├── commits.csv        ← extracted once, reused
 ├── prs.csv            ← extracted once, reused
@@ -264,7 +264,7 @@ Everything for a repo lives in one place:
 - Clone lives in `$CACHE/repo/`, NOT `/tmp/`. Never delete it.
 - Before extracting, check if the file exists. Skip if cached.
 - Re-running on same repo is fast because data is cached.
-- User can `rm ~/.repovet/cache/github.com/owner/repo/*.csv` to force refresh.
+- User can `rm $HOME/.repovet/cache/github.com/owner/repo/*.csv` to force refresh.
 
 ## Common Pitfalls
 

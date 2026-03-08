@@ -9,7 +9,7 @@ description: |
   the most?", "what languages?", "bus factor", "analyze contributors", "PR review time",
   "compare authors", "show me the data", "lines of code", "breakdown for X", "filter by
   author", "monthly activity", "top files changed", any data question about a git repo.
-  The CSV files are already cached at ~/.repovet/cache/github.com/<owner>/<repo>/.
+  The CSV files are already cached at $HOME/.repovet/cache/github.com/<owner>/<repo>/.
   Always use: scripts/repovet-query --markdown "SELECT ... FROM read_csv_auto('path/to/commits.csv')"
   NEVER use Python csv module or pandas. NEVER write inline Python scripts for data queries.
 ---
@@ -30,7 +30,7 @@ Query git/GitHub data with SQL using DuckDB CLI. No Python needed — just SQL.
 CSVs live in the RepoVet cache directory:
 
 ```
-~/.repovet/cache/{repo-name}/
+$HOME/.repovet/cache/{repo-name}/
 ├── commits.csv       # from git-commit-intel skill
 ├── prs.csv           # from github-project-intel skill (optional)
 └── issues.csv        # from github-project-intel skill (optional)
@@ -40,7 +40,7 @@ If CSVs don't exist yet, extract them first:
 
 ```bash
 REPO=/path/to/repo
-CACHE=~/.repovet/cache/$(basename $REPO)
+CACHE=$HOME/.repovet/cache/$(basename $REPO)
 mkdir -p "$CACHE"
 .venv/bin/python scripts/git-history-to-csv.py "$REPO" -o "$CACHE/commits.csv"
 .venv/bin/python scripts/github-to-csv.py "$REPO" --prs --issues -o "$CACHE/github.csv"  # optional
@@ -51,7 +51,7 @@ mkdir -p "$CACHE"
 Use `scripts/repovet-query` to run SQL on CSV files. It's a Python script (not bash) so quotes and special characters work correctly. Reference file paths with `read_csv_auto('path')`:
 
 ```bash
-CACHE=~/.repovet/cache/harbor
+CACHE=$HOME/.repovet/cache/harbor
 scripts/repovet-query "SELECT author_name, COUNT(*) as commits FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
 ```
 

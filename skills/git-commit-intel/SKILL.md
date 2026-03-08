@@ -35,13 +35,13 @@ The script lives at `scripts/git-history-to-csv.py` relative to the skillathon p
 ### Basic: current repo
 
 ```bash
-.venv/bin/python scripts/git-history-to-csv.py -o ~/.repovet/cache/{repo-name}/commits.csv
+.venv/bin/python scripts/git-history-to-csv.py -o $HOME/.repovet/cache/{repo-name}/commits.csv
 ```
 
 ### Specify a repo path
 
 ```bash
-.venv/bin/python scripts/git-history-to-csv.py /path/to/repo -o ~/.repovet/cache/{repo-name}/commits.csv
+.venv/bin/python scripts/git-history-to-csv.py /path/to/repo -o $HOME/.repovet/cache/{repo-name}/commits.csv
 ```
 
 ### Multiple repos at once
@@ -76,13 +76,13 @@ the `gh` CLI to be installed and authenticated.
 Store output in the RepoVet cache:
 
 ```
-~/.repovet/cache/{repo-name}/commits.csv
+$HOME/.repovet/cache/{repo-name}/commits.csv
 ```
 
 For GitHub-hosted repos, use the full path:
 
 ```
-~/.repovet/cache/github.com/{owner}/{repo}/commits.csv
+$HOME/.repovet/cache/github.com/{owner}/{repo}/commits.csv
 ```
 
 ## CSV Fields
@@ -152,7 +152,7 @@ Assess a repo before adoption:
 ```
 1. Clone the repo locally
 2. Run: .venv/bin/python scripts/git-history-to-csv.py --all -n 1000 /path/to/repo \
-       -o ~/.repovet/cache/github.com/owner/repo/commits.csv
+       -o $HOME/.repovet/cache/github.com/owner/repo/commits.csv
 3. Pass commits.csv to contributor-analysis skill
 4. Pass commits.csv to repo-health-analysis skill
 5. Pass commits.csv to security-history-analysis skill
