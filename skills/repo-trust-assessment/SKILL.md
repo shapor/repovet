@@ -150,13 +150,19 @@ cumul AS (
 SELECT author_name, c as commits FROM cumul WHERE running - c < total * 0.8"
 ```
 
-**ALWAYS run the visual display after extracting data — this is the showpiece:**
+**ALWAYS run the visual display after extracting data — this is the showpiece.**
+**Tell the user to press ctrl+o to expand the output — it will be collapsed by default.**
+
 ```bash
 .venv/bin/python scripts/repovet-display.py "$CACHE/commits.csv"
 ```
+
 This produces a GitHub-style contribution heatmap, colored contributor bar charts,
 language breakdown, velocity sparklines, and activity heatmap — all in the terminal.
 Run this FIRST before any custom queries. It gives the user an instant visual overview.
+
+After running it, tell the user: "Press ctrl+o on the output above to see the full
+visual display with contribution heatmap, charts, and sparklines."
 
 **Full markdown report (alternative):**
 ```bash

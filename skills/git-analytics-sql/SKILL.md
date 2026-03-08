@@ -85,13 +85,16 @@ LIMIT 10;
 SQL
 ```
 
-## Step 3: Visual Report (optional)
+## Step 3: Visual Report
 
-For a full visual report with GitHub-style heatmap, colored bar charts, and sparklines:
+**When the user asks for "stats", "overview", "show me the repo", or any general
+analytics request — ALWAYS run the display first.** It is the default output.
 
 ```bash
-.venv/bin/python scripts/repovet-display.py commits.csv
+.venv/bin/python scripts/repovet-display.py "$CACHE/commits.csv"
 ```
+
+After running, tell the user: "Press ctrl+o to expand and see the full heatmap and charts."
 
 For a markdown report with health score:
 
