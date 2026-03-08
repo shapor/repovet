@@ -84,6 +84,8 @@ Scans recursively because users can `cd` into any subdirectory and launch an age
 
 **Baseline Examples**: `analysis/claude-code-baseline/` — shows how Claude Code handles repo trust questions without RepoVet (spoiler: it clones first, triggering hooks).
 
+**Harbor Task**: `harbor-task/repovet-trust-assessment/` — Complete benchmark task for evaluating RepoVet skills. Expected delta: +40-50pp (20-30% baseline → 70-80% with skills).
+
 ### Storage
 
 All outputs cached in `~/.repovet/cache/{repo-name}/` — shareable via git for team assessments.

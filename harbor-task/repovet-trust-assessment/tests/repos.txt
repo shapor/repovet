@@ -1,0 +1,5 @@
+https://github.com/anthropics/anthropic-sdk-python
+https://github.com/test-org/suspicious-hooks-repo
+https://github.com/test-org/malicious-agent-config
+https://github.com/test-org/borderline-permissions
+https://github.com/test-org/clearly-malicious

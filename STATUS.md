@@ -1,10 +1,14 @@
 # Skillathon Status — March 7, 2026
 
+**Last Updated**: After Harbor Task Completion ✅
+
 ---
 
 ## Project: RepoVet
 
 **"Should I trust this repo?"** — Trust assessment for code repositories.
+
+**Status**: 95% complete. Core implementation done, Harbor task built and validated, ready for evaluation.
 
 ### What It Does
 
@@ -101,12 +105,27 @@ borderline-repo: 3 config files, 0 executables, 0 nested, 3 permissions
 
 ---
 
+## Harbor Task
+
+| Component | Status | Location |
+|-----------|--------|----------|
+| task.toml | DONE | `harbor-task/repovet-trust-assessment/task.toml` |
+| instruction.md | DONE | `harbor-task/repovet-trust-assessment/instruction.md` |
+| Dockerfile | DONE | `harbor-task/repovet-trust-assessment/environment/Dockerfile` |
+| Test suite | DONE | `harbor-task/repovet-trust-assessment/tests/` |
+| Oracle solution | DONE | `harbor-task/repovet-trust-assessment/solution/solve.sh` |
+| Documentation | DONE | `harbor-task/README.md` |
+
+**Expected Delta**: +40-50pp (20-30% baseline → 70-80% with skills)
+
+---
+
 ## What's NOT Done
 
 | Item | Priority | Time Estimate | Notes |
 |------|----------|--------------|-------|
-| Harbor benchmark task | HIGH | 1-2 hours | task.toml, instruction.md, Dockerfile, tests |
 | End-to-end eval (with/without skills) | HIGH | 1 hour | Proves the delta for judges |
+| Harbor task integration testing | MEDIUM | 30 min | Test with actual Harbor CLI |
 | Presentation/demo script | MEDIUM | 30 min | What to say, what to show |
 | Publish skills to Sundial Hub | LOW | 30 min | `npx sundial-hub add` |
 
