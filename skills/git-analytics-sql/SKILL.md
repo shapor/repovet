@@ -2,14 +2,16 @@
 name: git-analytics-sql
 allowed-tools: Bash Read
 description: |
-  Run SQL analytics against git commit history, PR, and issue data using DuckDB.
-  Use this skill when the user wants to query, analyze, slice, or explore git
-  repository data. Trigger on: "who committed the most?", "show me commit
-  velocity", "what languages are used?", "bus factor", "analyze contributors",
-  "PR review time", "issue response time", "commit patterns", "how active is
-  this repo?", "compare authors", any SQL or data analysis question about a
-  git repo. Also use when building dashboards, charts, or reports from repo data.
-  Do NOT use for security scanning or trust assessment — use repo-trust-assessment instead.
+  Run SQL analytics against git commit history, PR, and issue data using DuckDB CLI.
+  IMPORTANT: Use duckdb CLI for ALL queries on repo data. NEVER write Python to parse CSVs.
+  Trigger on ANY follow-up question about a repo after initial assessment: "breakdown by
+  language", "LOC per author", "show contributors", "commit velocity", "who committed
+  the most?", "what languages?", "bus factor", "analyze contributors", "PR review time",
+  "compare authors", "show me the data", "lines of code", "breakdown for X", "filter by
+  author", "monthly activity", "top files changed", any data question about a git repo.
+  The CSV files are already cached at ~/.repovet/cache/github.com/<owner>/<repo>/.
+  Always use: duckdb -markdown -c "SELECT ... FROM read_csv_auto('path/to/commits.csv')"
+  NEVER use Python csv module or pandas. NEVER write inline Python scripts for data queries.
 ---
 
 # Git Analytics SQL

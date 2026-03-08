@@ -158,8 +158,20 @@ SELECT author_name, c as commits FROM cumul WHERE running - c < total * 0.8"
 .venv/bin/python scripts/repovet-analyze.py "$CACHE/commits.csv"
 ```
 
-For any question about the repo data, write a DuckDB SQL query. See the
-`git-analytics-sql` skill for schema details and example queries.
+**For ALL follow-up data questions (language breakdown, author stats, LOC, etc.)
+use the `duckdb` CLI directly. NEVER write Python to parse CSVs.**
+
+```bash
+# Example: language breakdown for a specific author
+duckdb -markdown -c "
+SELECT key AS language, SUM(CAST(value->>'ins' AS INT)) AS lines_added
+FROM read_csv_auto('$CACHE/commits.csv'),
+LATERAL (SELECT UNNEST(from_json(lang_stats, '{\"a\":{\"ins\":0,\"dels\":0}}')) )
+WHERE author_name = 'AuthorName' AND lang_stats != '{}'
+GROUP BY 1 ORDER BY 2 DESC"
+```
+
+See the `git-analytics-sql` skill for full schema and more example queries.
 
 ### Step 3: Threat Deep Dive (if needed)
 
