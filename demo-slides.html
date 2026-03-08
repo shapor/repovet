@@ -318,32 +318,32 @@ Clone to workspace anyway? [y/N]</code></pre>
             <!-- Skill Delta -->
             <section>
                 <h2>Harbor Benchmark Results</h2>
-                <div style="margin-top: 30px;">
-                    <pre class="terminal" style="font-size: 0.45em;"><code>$ harbor run --path harbor-task/repovet-trust-assessment --agent oracle
-  1/1 Mean: 1.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
-┃ Metric              ┃ Value  ┃
-┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
-│ Agent               │ oracle │
-│ Mean                │ <span class="score-high">1.000</span>  │
-│   reward = 1.0      │ 1      │
-└─────────────────────┴────────┘
-
-$ harbor run --path harbor-task/repovet-trust-assessment --agent claude-code -m anthropic/claude-sonnet-4-6
-  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Metric              ┃ Value                           ┃
-┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ Agent               │ claude-code (claude-sonnet-4-6) │
-│ Mean                │ <span class="score-low">0.000</span>                           │
-│   reward = 0.0      │ 1                               │
-└─────────────────────┴─────────────────────────────────┘</code></pre>
-                    <p style="margin-top: 30px; font-size: 1.5em; color: #5cb85c;">
-                        <strong>Skill delta: +100pp</strong>
-                    </p>
-                    <p style="font-size: 0.7em; margin-top: 10px; opacity: 0.7;">
-                        Full results: <code>jobs/2026-03-07__18-31-09/</code> and <code>jobs/2026-03-07__18-32-05/</code>
-                    </p>
+                <div style="margin-top: 20px;">
+                    <table style="font-size: 0.75em; margin: 0 auto; border-collapse: collapse;">
+                        <tr style="border-bottom: 2px solid #555;">
+                            <th style="padding: 8px 20px; text-align: left;">Task</th>
+                            <th style="padding: 8px 20px;">Oracle<br><span style="font-size: 0.7em; opacity: 0.7;">(with skills)</span></th>
+                            <th style="padding: 8px 20px;">Sonnet 4.5<br><span style="font-size: 0.7em; opacity: 0.7;">(no skills)</span></th>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #333;">
+                            <td style="padding: 8px 20px; text-align: left;">Easy: 5 repos<br><span style="font-size: 0.7em; opacity: 0.7;">(obvious safe/malicious)</span></td>
+                            <td style="padding: 8px 20px;"><span class="score-high">1.0 ✅</span></td>
+                            <td style="padding: 8px 20px;"><span class="score-high">1.0 ✅</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 20px; text-align: left;">Hard: SkillsBench<br><span style="font-size: 0.7em; opacity: 0.7;">(nuanced governance)</span></td>
+                            <td style="padding: 8px 20px;"><span class="score-high">1.0 ✅</span></td>
+                            <td style="padding: 8px 20px;"><span class="score-low">0.0 ❌</span></td>
+                        </tr>
+                    </table>
+                    <div style="margin-top: 30px; font-size: 0.85em;">
+                        <p><strong>What happened on the hard task:</strong></p>
+                        <p style="margin-top: 10px;">Sonnet saw 638 stars, 202 forks, 30 contributors → <span class="score-med">7.0 "Trust"</span></p>
+                        <p>RepoVet dug into review culture, bus factor, PR patterns → <span class="score-high">5.8 "Caution"</span></p>
+                        <p style="margin-top: 15px; opacity: 0.8; font-size: 0.9em;">Sonnet got the vibe but not the conclusion.<br>
+                        It <em>mentioned</em> governance concerns but still said "Trust."<br>
+                        Skills turn surface-level awareness into correct decisions.</p>
+                    </div>
                 </div>
             </section>
 
