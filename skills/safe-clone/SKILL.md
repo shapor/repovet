@@ -48,13 +48,20 @@ If the scan score was >= 7 (no threats), use only 2 options: "Clone" and "Cancel
 ### Tool Call 4: Act on response
 
 - If "Deep dive": You MUST do ALL of these steps:
-  1. Clone: `gh repo clone OWNER/REPO /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo`
-  2. Extract: `.venv/bin/python scripts/git-history-to-csv.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
-  3. Discover: `.venv/bin/python scripts/repovet-config-discover.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json`
-  4. Display: `.venv/bin/python scripts/repovet-display.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
-  5. Launch ALL 7 threat skills as parallel Task agents reading discovery.json: threat-auto-execution, threat-network-exfil, threat-remote-code-execution, threat-credential-access, threat-obfuscation, threat-repo-write, threat-prompt-injection
+  1. Check if clone exists: `ls /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/.git`
+     - If it exists: skip cloning, reuse it
+     - If not: `gh repo clone OWNER/REPO /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo`
+  2. Check if data exists: `ls /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
+     - If it exists: skip extraction, reuse it
+     - If not: `.venv/bin/python scripts/git-history-to-csv.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
+  3. Check if discovery exists: `ls /home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json`
+     - If it exists: skip, reuse it
+     - If not: `.venv/bin/python scripts/repovet-config-discover.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json`
+  4. Show visual display: `.venv/bin/python scripts/repovet-display.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
+  5. Launch ALL 7 threat skills as parallel Task agents reading /home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json: threat-auto-execution, threat-network-exfil, threat-remote-code-execution, threat-credential-access, threat-obfuscation, threat-repo-write, threat-prompt-injection
   6. Show combined findings and ask clone or cancel
   Do NOT just read the hook files yourself. You MUST run the threat skills as Task agents.
+  REUSE CACHED DATA. Do NOT re-clone or re-extract if files already exist.
 - If "Clone anyway": Run `git clone https://github.com/OWNER/REPO`
 - If "Cancel": Say "Clone cancelled."
 
