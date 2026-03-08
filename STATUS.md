@@ -125,8 +125,7 @@ borderline-repo: 3 config files, 0 executables, 0 nested, 3 permissions
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| End-to-end eval (with/without skills) | HIGH | Proves the delta for judges |
-| Harbor task integration testing | MEDIUM | Test with actual Harbor CLI |
+| Rigorous Harbor evals | HIGH | Scaffolding exists, most evals done manually — Docker runs are slow, need more automated passes |
 | Publish skills to Sundial Hub | LOW | `npx sundial-hub add` |
 
 ---

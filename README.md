@@ -1,6 +1,6 @@
 # Skillathon 2026
 
-Work from the March 7, 2026 Agent Skills Hackathon (SF).
+Work from the March 7, 2026 [Agent Skills Hackathon](https://www.skillathon.ai/) (SF). [View the presentation](https://shapor.github.io/repovet/demo-slides.html).
 
 ---
 
