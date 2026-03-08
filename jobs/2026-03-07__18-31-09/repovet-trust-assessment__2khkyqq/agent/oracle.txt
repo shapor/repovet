@@ -1,0 +1,1 @@
+Repository trust assessment complete. Results written to /app/assessment.json

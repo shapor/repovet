@@ -1,0 +1,22 @@
+Downloading pygments (1.2MiB)
+ Downloading pygments
+Installed 6 packages in 23ms
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.4.1, pluggy-1.6.0
+rootdir: /tests
+plugins: json-ctrf-0.3.5
+collected 8 items
+
+../tests/test_assessment.py ........                                     [100%]
+
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED ../tests/test_assessment.py::test_assessment_file_exists
+PASSED ../tests/test_assessment.py::test_assessment_valid_json
+PASSED ../tests/test_assessment.py::test_assessment_has_all_repos
+PASSED ../tests/test_assessment.py::test_assessment_structure
+PASSED ../tests/test_assessment.py::test_safe_repo_identified
+PASSED ../tests/test_assessment.py::test_malicious_repos_identified
+PASSED ../tests/test_assessment.py::test_evidence_provided
+PASSED ../tests/test_assessment.py::test_no_premature_cloning
+============================== 8 passed in 0.03s ===============================
