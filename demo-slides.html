@@ -274,19 +274,23 @@ Clone to workspace anyway? [y/N]</code></pre>
             <!-- Key Innovation -->
             <section>
                 <h2>The Key Innovation</h2>
-                <div style="margin-top: 60px;">
+                <div style="margin-top: 40px;">
                     <p style="font-size: 1.5em; color: #5cb85c;" class="fragment">
-                        <strong>NEVER CLONE FIRST</strong>
+                        <strong>Teach agents to be cautious</strong>
                     </p>
-                    <p style="font-size: 1.1em; margin-top: 40px;" class="fragment">
-                        Scan via GitHub API • Detect threats remotely • Warn before compromise
+                    <p style="font-size: 1.1em; margin-top: 30px;" class="fragment">
+                        Agent learns: Check trust BEFORE cloning
                     </p>
-                    <p style="font-size: 1em; margin-top: 40px; opacity: 0.8;" class="fragment">
-                        By the time you <code>git clone</code>, it's already too late.<br>
-                        Hooks execute. Data exfiltrates. You're compromised.
+                    <p style="font-size: 1em; margin-top: 40px;" class="fragment">
+                        <strong>But also enables YOLO mode:</strong>
                     </p>
-                    <p style="font-size: 1.3em; margin-top: 60px; color: #e7ad52;" class="fragment">
-                        <strong>RepoVet checks BEFORE you clone.</strong>
+                    <ul style="font-size: 0.9em; margin-top: 20px;">
+                        <li class="fragment">Set star thresholds (e.g., >1000 stars = auto-trust)</li>
+                        <li class="fragment">Contributor reputation (Anthropic org = trusted)</li>
+                        <li class="fragment">Auto-approve safe repos, warn on sketchy ones</li>
+                    </ul>
+                    <p style="font-size: 1.2em; margin-top: 40px; color: #e7ad52;" class="fragment">
+                        <strong>Move faster because you have guardrails.</strong>
                     </p>
                 </div>
             </section>
