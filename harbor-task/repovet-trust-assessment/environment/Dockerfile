@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-full \
     ca-certificates \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
@@ -25,8 +26,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Set up working directory
 WORKDIR /app
 
-# Install Python dependencies
-RUN uv pip install --system duckdb pytz
+# Install Python dependencies (break-system-packages for Ubuntu 24.04)
+RUN uv pip install --python /usr/bin/python3 --break-system-packages duckdb pytz
 
 # Create directories for logs and cache
 RUN mkdir -p /logs/verifier /root/.repovet/cache
