@@ -37,9 +37,13 @@ Extract owner/repo from user input. Accept formats:
 - `owner/repo`
 
 ### Step 2: Run RepoVet Scan
+
+Run this exact command (replace owner/repo with actual values):
 ```bash
-.venv/bin/python scripts/repovet.py scan owner/repo
+/home/shapor/src/skillathon/.venv/bin/python /home/shapor/src/skillathon/scripts/repovet.py scan owner/repo
 ```
+
+Do NOT search for repovet.py. It is at `/home/shapor/src/skillathon/scripts/repovet.py`. Just run it.
 
 ### Step 3: Show Results to User
 
