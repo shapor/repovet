@@ -5,9 +5,12 @@
       "WebFetch",
       "Bash(scripts/repovet-query *)",
       "Bash(.venv/bin/python scripts/*)",
+      "Bash(.venv/bin/python3 scripts/*)",
+      "Bash(python3 scripts/*)",
       "Bash(gh repo clone *)",
       "Bash(gh api *)",
       "Bash(gh auth status*)",
+      "Bash(gh repo view *)",
       "Bash(git *)",
       "Bash(mkdir *)",
       "Bash(ls *)",
@@ -16,13 +19,12 @@
       "Bash(head *)",
       "Bash(tail *)",
       "Bash(cp *)",
-      "Bash(CACHE=*)",
-      "Bash(if *)",
       "Bash(rm -rf /tmp/repovet-*)",
       "Skill(repo-trust-assessment)",
       "Skill(git-analytics-sql)",
       "Skill(git-commit-intel)",
-      "Skill(github-project-intel)"
+      "Skill(github-project-intel)",
+      "Skill(safe-clone)"
     ]
   }
 }
