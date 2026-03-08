@@ -190,16 +190,15 @@ SQL
 ### Language breakdown
 ```bash
 scripts/repovet-query --markdown "
-WITH base AS (
-    SELECT lang_stats FROM read_csv_auto('/full/path/to/commits.csv')
-    WHERE lang_stats IS NOT NULL AND lang_stats <> '{}'
-),
-exploded AS (
-    SELECT unnest(json_keys(lang_stats)) AS lang, lang_stats FROM base
+WITH exploded AS (
+    SELECT unnest(json_keys(lang_stats::JSON)) AS lang,
+           lang_stats::JSON AS js
+    FROM read_csv_auto('/full/path/to/commits.csv')
+    WHERE lang_stats <> '{}'
 )
 SELECT lang AS language,
-       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.ins') AS INT)) AS lines_added,
-       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.dels') AS INT)) AS lines_removed
+       SUM(CAST(json_extract(js, '\$.' || lang || '.ins') AS INT)) AS lines_added,
+       SUM(CAST(json_extract(js, '\$.' || lang || '.dels') AS INT)) AS lines_removed
 FROM exploded GROUP BY lang ORDER BY lines_added + lines_removed DESC"
 ```
 
@@ -264,21 +263,25 @@ WHERE lang_stats <> '{}'
 WHERE lang_stats <> '{}'
 ```
 
-**For JSON lang_stats parsing, use this exact pattern:**
+**For JSON lang_stats parsing, use this EXACT proven pattern (do NOT try alternatives):**
 ```bash
 scripts/repovet-query --markdown "
-WITH base AS (
-    SELECT lang_stats FROM read_csv_auto('/path/to/commits.csv')
-    WHERE lower(author_name) = 'someone' AND lang_stats <> '{}'
-),
-exploded AS (
-    SELECT unnest(json_keys(lang_stats)) AS lang, lang_stats FROM base
+WITH exploded AS (
+    SELECT unnest(json_keys(lang_stats::JSON)) AS lang,
+           lang_stats::JSON AS js
+    FROM read_csv_auto('/path/to/commits.csv')
+    WHERE lower(author_name) = 'someone'
+      AND lang_stats <> '{}'
 )
 SELECT lang AS language,
-       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.ins') AS INT)) AS lines_added,
-       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.dels') AS INT)) AS lines_removed
+       SUM(CAST(json_extract(js, '\$.' || lang || '.ins') AS INT)) AS lines_added,
+       SUM(CAST(json_extract(js, '\$.' || lang || '.dels') AS INT)) AS lines_removed,
+       SUM(CAST(json_extract(js, '\$.' || lang || '.ins') AS INT)) -
+       SUM(CAST(json_extract(js, '\$.' || lang || '.dels') AS INT)) AS net
 FROM exploded GROUP BY lang ORDER BY lines_added + lines_removed DESC"
 ```
+Key details: cast `lang_stats::JSON` first, use `json_keys()` to get language names,
+use `json_extract(js, '$.' || lang || '.ins')` to get values. Do NOT use `from_json()` or `UNNEST(from_json(...))` — they do not work for this JSON shape.
 
 ## Common Pitfalls
 
