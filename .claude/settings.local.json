@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Bash(scripts/repovet-query *)",
+      "Bash(.venv/bin/python scripts/*)",
+      "Bash(gh repo clone *)",
+      "Bash(gh api *)",
+      "Bash(gh auth status*)",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(cp *)",
+      "Bash(rm -rf /tmp/repovet-*)",
+      "Skill(repo-trust-assessment)",
+      "Skill(git-analytics-sql)",
+      "Skill(git-commit-intel)",
+      "Skill(github-project-intel)"
+    ]
+  }
+}

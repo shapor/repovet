@@ -48,7 +48,7 @@ mkdir -p "$CACHE"
 
 ## Querying with DuckDB
 
-Use `scripts/repovet-query` to run SQL on CSV files. It uses DuckDB under the hood. Just reference file paths in SQL with `read_csv_auto('path')`:
+Use `scripts/repovet-query` to run SQL on CSV files. It's a Python script (not bash) so quotes and special characters work correctly. Reference file paths with `read_csv_auto('path')`:
 
 ```bash
 CACHE=~/.repovet/cache/harbor
