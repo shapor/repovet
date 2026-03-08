@@ -441,17 +441,67 @@ Recommendation: <span class="score-low">DO NOT TRUST</span>
             <!-- More Than Security -->
             <section>
                 <h2>More Than Security</h2>
-                <div style="font-size: 0.95em; margin-top: 40px;">
-                    <p class="fragment"><strong>Trust is not just "is it malicious?"</strong></p>
-                    <p class="fragment" style="margin-top: 30px;">Is this repo abandoned? Who actually maintains it?</p>
-                    <p class="fragment">Was that recent commit a feature or a security patch?</p>
-                    <p class="fragment">Is there one person or a team? What's the bus factor?</p>
-                    <p class="fragment" style="margin-top: 30px;">When you <code>git clone</code>, you lose the GitHub page.</p>
-                    <p class="fragment">No heatmap. No contributor graph. No issue history.</p>
-                    <p class="fragment" style="margin-top: 30px; font-size: 1.1em; color: #5cb85c;">
-                        <strong>RepoVet gives your agent the context you'd get from browsing GitHub</strong> — contributor history, velocity, code provenance — as structured data it can reason about.
-                    </p>
-                </div>
+                <p style="font-size: 0.9em;">When you <code>git clone</code>, you lose the GitHub page. RepoVet brings it back.</p>
+                <pre class="terminal" style="font-size: 0.32em; margin-top: 20px;"><code><span class="score-high">$ /repo-trust-assessment anthropics/anthropic-sdk-python</span>
+
+<span style="color: #e7ad52;">══ Project Health ═══════════════════════════════════════════</span>
+Stars: 2,895  │  Forks: 499  │  Contributors: 30  │  Bus Factor: 5
+Last Push: 2 hours ago  │  Created: Jan 2023  │  License: MIT
+
+<span style="color: #e7ad52;">══ Top Contributors ════════════════════════════════════════</span>
+│ Author              │ Commits │ Active Months │ Commits/Mo │
+│ Robert Craigie      │     482 │            28 │       17.2 │
+│ Stainless Bot       │     381 │            25 │       15.2 │
+│ Brandon Squizzato   │      42 │            12 │        3.5 │
+│ Tomio               │      18 │             8 │        2.3 │
+│ Deven P. Mistry     │      12 │             6 │        2.0 │
+
+<span style="color: #e7ad52;">══ Development Velocity ════════════════════════════════════</span>
+Avg commits/week: 12.4  │  PR merge time: &lt;24hrs  │  Issue response: &lt;48hrs
+Review culture: ✅ Strong (98% of PRs reviewed)
+
+<span style="color: #e7ad52;">══ Security ════════════════════════════════════════════════</span>
+CVEs: None  │  Secrets in history: None  │  Force pushes: None
+Agent configs: None  │  Git hooks: None
+
+<span style="color: #e7ad52;">══ Trust Score ═════════════════════════════════════════════</span>
+<span class="score-high">█████████░  9.0/10  —  TRUST</span>
+
+Agent has all the context to decide. No browser needed.</code></pre>
+            </section>
+
+            <!-- More Than Security 2 -->
+            <section>
+                <h2>SQL-Powered Drill-Down</h2>
+                <p style="font-size: 0.85em;">Agent can query cached data with DuckDB — any follow-up question, instantly.</p>
+                <pre class="terminal" style="font-size: 0.35em; margin-top: 20px;"><code><span class="score-high">You:</span> "Who committed the most security-related changes?"
+
+<span style="color: #e7ad52;">Agent runs:</span>
+  SELECT author_name, COUNT(*) as security_commits
+  FROM read_csv_auto('~/.repovet/cache/.../commits.csv')
+  WHERE subject ILIKE '%security%' OR subject ILIKE '%CVE%'
+     OR subject ILIKE '%vuln%' OR subject ILIKE '%fix%auth%'
+  GROUP BY author_name ORDER BY security_commits DESC LIMIT 5
+
+<span class="score-high">You:</span> "Show me commit velocity by month"
+
+<span style="color: #e7ad52;">Agent runs:</span>
+  SELECT strftime('%Y-%m', author_date) as month,
+         COUNT(*) as commits, COUNT(DISTINCT author_name) as authors
+  FROM read_csv_auto('~/.repovet/cache/.../commits.csv')
+  GROUP BY month ORDER BY month DESC LIMIT 12
+
+<span class="score-high">You:</span> "What languages changed most recently?"
+
+<span style="color: #e7ad52;">Agent runs:</span>
+  SELECT unnest(string_split(lang_stats, ';')) as lang,
+         COUNT(*) as changes
+  FROM read_csv_auto('~/.repovet/cache/.../commits.csv')
+  WHERE author_date > now() - INTERVAL 30 DAY
+  GROUP BY lang ORDER BY changes DESC</code></pre>
+                <p style="margin-top: 20px; font-size: 1em; color: #5cb85c;">
+                    <strong>Your agent gets GitHub Insights — without a browser.</strong>
+                </p>
             </section>
 
             <!-- Built With -->
