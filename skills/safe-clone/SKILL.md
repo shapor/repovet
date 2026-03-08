@@ -9,64 +9,52 @@ description: >
 
 # Safe Clone
 
-Scan a repo with RepoVet BEFORE cloning it. Follow these steps EXACTLY.
+## Instructions
 
-## MANDATORY RULES
+When this skill is activated, execute ONLY these tool calls in this EXACT order. Do not add any other tool calls between them.
 
-- You MUST use AskUserQuestion after scanning. No exceptions.
-- You MUST NOT skip the question or auto-proceed to reading files.
-- You MUST NOT run python3 -c inline scripts. Ever.
-- You MUST NOT try to analyze hook contents before asking the user.
-- You MUST follow steps 1, 2, 3 in order. Do not deviate.
+### Tool Call 1: Run RepoVet scan
 
-## Step 1: Scan
-
-Run this exact command (replace OWNER/REPO with actual values):
-
-```bash
+Call the Bash tool with:
+```
 /home/shapor/src/skillathon/.venv/bin/python /home/shapor/src/skillathon/scripts/repovet.py scan OWNER/REPO
 ```
 
-Show the trust score and key findings to the user.
+### Tool Call 2: Summarize scan results
 
-## Step 2: Ask the user what to do
+Output a short summary of the trust score and findings as text to the user. Do not call any tools in this step.
 
-IMMEDIATELY after showing scan results, you MUST call the AskUserQuestion tool.
+### Tool Call 3: Ask the user
 
-If score < 7, provide EXACTLY these 3 options:
+Call the AskUserQuestion tool with this exact structure:
 
-Question: "This repo has security concerns. What would you like to do?"
-Options:
-1. label: "Deep dive analysis", description: "Clone to cache and run 10 threat analysis agents to inspect exactly what the hooks and scripts do"
-2. label: "Clone anyway", description: "Clone to current directory despite the findings"
-3. label: "Cancel", description: "Do not clone this repository"
-
-If score >= 7, provide 2 options:
-
-Question: "Scan looks clean. Clone this repo?"
-Options:
-1. label: "Yes, clone it", description: "Clone to current directory"
-2. label: "Cancel", description: "Do not clone"
-
-STOP HERE AND WAIT FOR THE USER'S RESPONSE. Do not proceed until they answer.
-
-## Step 3: Act on user's choice
-
-### If "Deep dive analysis":
-
-Invoke the repo-trust-assessment skill for a full Phase 2 deep dive:
-- Clone to /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/
-- Extract commits.csv and discovery.json
-- Run all threat detection skills in parallel (threat-auto-execution, threat-network-exfil, threat-remote-code-execution, threat-credential-access, threat-obfuscation, threat-repo-write, threat-prompt-injection)
-- Show the visual display with repovet-display.py
-- Then ask: "Now that you've seen the details, clone to your workspace or cancel?"
-
-### If "Clone anyway" or "Yes, clone it":
-
-```bash
-git clone https://github.com/OWNER/REPO
+```json
+{
+  "questions": [{
+    "question": "What would you like to do?",
+    "header": "Next step",
+    "options": [
+      {"label": "Deep dive analysis (Recommended)", "description": "Clone to cache and run 10 parallel threat analysis agents to inspect what the hooks and scripts actually do before you decide"},
+      {"label": "Clone anyway", "description": "Clone to current directory despite the security findings"},
+      {"label": "Cancel", "description": "Do not clone this repository"}
+    ],
+    "multiSelect": false
+  }]
+}
 ```
 
-### If "Cancel":
+If the scan score was >= 7 (no threats), use only 2 options: "Clone" and "Cancel".
 
-Say "Clone cancelled. The repo was not downloaded."
+### Tool Call 4: Act on response
+
+- If "Deep dive": Invoke skill repo-trust-assessment for Phase 2 deep dive on this repo
+- If "Clone anyway": Run `git clone https://github.com/OWNER/REPO`
+- If "Cancel": Say "Clone cancelled."
+
+## What NOT to do
+
+- Do NOT read any files from the repo before asking the user
+- Do NOT run python3 -c inline scripts
+- Do NOT try to cat or analyze hook contents before step 3
+- Do NOT skip the AskUserQuestion call
+- Do NOT add extra analysis steps between steps 1 and 3
