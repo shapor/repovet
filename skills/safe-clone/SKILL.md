@@ -45,91 +45,60 @@ Run this exact command (replace owner/repo with actual values):
 
 Do NOT search for repovet.py. It is at `/home/shapor/src/skillathon/scripts/repovet.py`. Just run it.
 
-### Step 3: Show Results to User
+### Step 3: Show Results and Ask User
 
-Parse the output and present clearly with multiple options:
+Parse the RepoVet output and present it clearly to the user.
 
-```
-🔍 RepoVet Scan Results for owner/repo
-
-Trust Score: X/10 — [SAFE / CAUTION / HIGH RISK]
-
-Key Findings:
-  • [List any threats detected]
-  • [Or "No threats detected" if clean]
-
-What would you like to do?
-```
-
-**If score >= 7 (relatively safe):**
-- Option 1: "Clone normally" — clone to current directory
-- Option 2: "Cancel"
+**If score >= 7 (safe):**
+Show 2 options:
+1. Yes, clone it
+2. No, cancel
 
 **If score < 7 (threats detected):**
-- Option 1: "Clone normally" — clone to current directory (user accepts risk)
-- Option 2: "Sandbox inspect first" — clone to /tmp, analyze actual hook contents, then decide
-- Option 3: "Cancel"
 
-### Step 4a: Clone Normally
+**YOU MUST show EXACTLY 3 options using AskUserQuestion. NOT 2. THREE options:**
 
+1. **Deep dive analysis** — Clone to cache, run all 10 threat detection agents in parallel to analyze exactly what the malicious code does. This is the most useful option for the user.
+2. **Clone anyway** — Clone despite the security findings.
+3. **Cancel** — Do not clone.
+
+**The "Deep dive analysis" option MUST be the FIRST option** because it's the most useful when threats are found. The user wants to understand WHAT the threats do before deciding.
+
+Use AskUserQuestion with these exact labels:
+- "Deep dive analysis" (description: "Clone to cache, run 10 threat analysis agents to inspect what the hooks/scripts actually do")
+- "Clone anyway" (description: "Clone despite findings — hooks will be present")
+- "Cancel" (description: "Do not clone")
+
+### Step 4a: Clone
+
+**If user chooses "Yes, clone it":**
 ```bash
 git clone https://github.com/owner/repo
 ```
 
-Show completion message with reminder about threats if any were found.
+### Step 4b: Deep Dive Analysis
 
-### Step 4b: Sandbox Inspect (For Risky Repos)
+**If user chooses "Deep dive analysis":**
 
-If user chooses "Sandbox inspect first":
+1. Clone repo to temp location (RepoVet already did this, use the cache at `~/.repovet/cache/owner-repo/`)
 
-1. **Create sandbox directory:**
-   ```bash
-   SANDBOX_DIR="/tmp/repovet-sandbox-$(date +%s)-owner-repo"
-   git clone https://github.com/owner/repo "/tmp/repovet-sandbox"
-   ```
+2. Run the relevant threat detection skills based on what RepoVet found:
+   - If "Auto-execution hook" detected → `/skill threat-auto-execution ~/.repovet/cache/owner-repo/`
+   - If "Network exfiltration" detected → `/skill threat-network-exfil ~/.repovet/cache/owner-repo/`
+   - If "Credential access" detected → `/skill threat-credential-access ~/.repovet/cache/owner-repo/`
+   - If "Remote code execution" detected → `/skill threat-remote-code-execution ~/.repovet/cache/owner-repo/`
+   - If "Obfuscation" detected → `/skill threat-obfuscation ~/.repovet/cache/owner-repo/`
+   - If "Prompt injection" detected → `/skill threat-prompt-injection ~/.repovet/cache/owner-repo/`
 
-2. **Analyze the actual threats:**
-   - Read the hook files that were flagged
-   - Read any suspicious scripts
-   - Parse what they actually do (network calls, file access, commands)
+3. Show the detailed threat analysis to the user
 
-3. **Show detailed analysis:**
-   ```
-   Sandboxed in: /tmp/repovet-sandbox-12345-owner-repo
-
-   I inspected the actual code. Here's what the hooks do:
-
-   📄 .claude/hooks/pre-command.sh:
-      • Makes POST to https://analytics.devtools-cdn.net/collect
-      • Sends: session ID, timestamp, tool name
-      • Runs in background with '&' (hidden execution)
-      • Would execute before EVERY Claude Code command
-
-   The actual code:
-   ```bash
-   curl -s -X POST "$METRICS_ENDPOINT" \
-     -H "Content-Type: application/json" \
-     -d "{\"session\":\"$SESSION_ID\",\"tool\":\"dev-utils\",\"timestamp\":\"$(date)\"}"
-   ```
-
-   This data goes to a third-party analytics domain, not the repo owner.
-
-   Now that you've seen what it does:
-   • Clone to your workspace anyway? [y/N]
-   • Keep sandbox for manual review? [Y/n]
-   ```
-
-4. **Final decision:**
-   - If yes: clone to current directory
-   - If no: cleanup sandbox (optional), exit
-
-5. **Cleanup sandbox:**
-   ```bash
-   rm -rf "/tmp/repovet-sandbox"
-   ```
-   Unless user wants to keep it for manual review.
+4. Ask again: "Clone to your workspace anyway? [y/N]"
+   - If yes → `git clone https://github.com/owner/repo`
+   - If no → done
 
 ### Step 4c: Cancel
+
+**If user chooses "No, cancel":**
 
 ```
 Clone cancelled. The repo was not downloaded.
