@@ -54,9 +54,12 @@ CONFIG_PATTERNS = {
     # Generic agent instructions
     "**/AGENTS.md": "agents_instructions",
 
-    # Skills
+    # Skills (multiple locations where agents discover them)
     "**/skills/*/SKILL.md": "skill_definition",
     "**/skills/*/scripts/*": "skill_script",
+    "**/.claude/skills/*/SKILL.md": "skill_definition",
+    "**/.agents/skills/*/SKILL.md": "skill_definition",
+    "**/.agents/**/*": "agents_config",
 }
 
 # Languages we recognise in fenced code blocks

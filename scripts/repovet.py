@@ -44,10 +44,11 @@ AGENT_CONFIG_PATTERNS = [
     ".continue/",        # Continue
     ".windsurfrules",    # Windsurf
     "AGENTS.md",         # Generic agent instructions
+    ".agents/",          # Agent skills/config directory
 ]
 
 # Root-level config directories (not considered "nested" if at repo root)
-ROOT_CONFIG_DIRS = {".claude", ".cursor", ".continue", ".github", "skills"}
+ROOT_CONFIG_DIRS = {".claude", ".cursor", ".continue", ".github", "skills", ".agents"}
 
 # Threat detection patterns organized by category
 THREAT_PATTERNS: dict[str, list[dict[str, Any]]] = {
