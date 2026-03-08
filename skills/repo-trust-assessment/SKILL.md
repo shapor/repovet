@@ -60,60 +60,56 @@ Based on quick scan results, offer the user a choice:
 Only proceed here if the user asks for more detail.
 
 **CRITICAL RULES — READ BEFORE DOING ANYTHING:**
-- **NEVER clone to /tmp/**. Clone to `/home/shapor/.repovet/cache/github.com/<owner>/<repo>/repo/`
+- **NEVER clone to /tmp/**. Clone to `/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/`
 - **NEVER `rm -rf` any clone.** Clones are cached and reused.
-- **NEVER re-extract data that already exists.** Check `[ -f file ]` first.
-- **NEVER run `rm -rf /tmp/repovet-*`**. There is no cleanup step. Data persists.
+- **NEVER re-extract data that already exists.** Check with `ls` first.
+- **NEVER use shell variables like $CACHE or $REPO_PATH** — they trigger permission prompts. Use literal paths in every command.
+- **Run each command separately** — do NOT chain with `&&` or use `if` blocks.
 
-### Step 1: Set Up Cache Directory
+### Step 1: Create cache directory
 
-Everything for a repo lives under one directory. The clone persists here too.
-
-```bash
-CACHE=/home/shapor/.repovet/cache/github.com/<owner>/<repo>
-mkdir -p "/home/shapor/.repovet/cache/github.com/OWNER/REPO"
-```
-
-### Step 2: Clone (or reuse existing clone)
-
-**Always check if the clone already exists before cloning again.**
+Replace OWNER/REPO with actual values (e.g. `shapor/helpful-dev-utils`):
 
 ```bash
-if [ -d "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo" ]; then
-    echo "Clone already exists, pulling latest..."
-    git -C "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo" pull --ff-only 2>/dev/null || true
-else
-    gh repo clone <owner/repo> "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo" 2>&1 || git clone <url> "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo"
-fi
-REPO_PATH="/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo"
+mkdir -p /home/shapor/.repovet/cache/github.com/OWNER/REPO
 ```
 
-The clone lives at `/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/` — NOT in `/tmp/`. Never delete it.
+### Step 2: Clone (or skip if exists)
 
-### Step 3: Extract Data (skip if already cached)
+First check if already cloned:
+```bash
+ls /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/.git 2>/dev/null
+```
 
-**Check if each file already exists before re-extracting.** Only re-extract if
-the user asks to refresh or if the repo was just pulled.
+If that shows `.git` exists, skip cloning. Otherwise clone:
+```bash
+gh repo clone OWNER/REPO /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo
+```
+
+### Step 3: Extract data (skip if cached)
+
+Check what's already cached:
+```bash
+ls /home/shapor/.repovet/cache/github.com/OWNER/REPO/
+```
+
+Only run extraction for files that DON'T already exist:
 
 ```bash
-# Git history — skip if commits.csv already exists
-if [ ! -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv" ]; then
-    .venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv"
-fi
-
-# Config discovery — always re-run (fast and catches changes)
-.venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json"
-
-# GitHub PRs and issues — skip if already cached, run in background
-if [ ! -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/prs.csv" ]; then
-    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/prs.csv" &
-fi
-if [ ! -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/issues.csv" ]; then
-    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --issues -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/issues.csv" &
-fi
+.venv/bin/python scripts/git-history-to-csv.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv
 ```
 
-To force a full refresh: `rm "/home/shapor/.repovet/cache/github.com/OWNER/REPO"/*.csv && rm "/home/shapor/.repovet/cache/github.com/OWNER/REPO"/*.json`
+```bash
+.venv/bin/python scripts/repovet-config-discover.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json
+```
+
+```bash
+.venv/bin/python scripts/github-to-csv.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo --prs -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/prs.csv
+```
+
+```bash
+.venv/bin/python scripts/github-to-csv.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo --issues -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/issues.csv
+```
 
 ### Step 2: Run Analytics
 
