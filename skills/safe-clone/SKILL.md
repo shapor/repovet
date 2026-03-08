@@ -47,7 +47,14 @@ If the scan score was >= 7 (no threats), use only 2 options: "Clone" and "Cancel
 
 ### Tool Call 4: Act on response
 
-- If "Deep dive": Invoke skill repo-trust-assessment for Phase 2 deep dive on this repo
+- If "Deep dive": You MUST do ALL of these steps:
+  1. Clone: `gh repo clone OWNER/REPO /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo`
+  2. Extract: `.venv/bin/python scripts/git-history-to-csv.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
+  3. Discover: `.venv/bin/python scripts/repovet-config-discover.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo -o /home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json`
+  4. Display: `.venv/bin/python scripts/repovet-display.py /home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv`
+  5. Launch ALL 7 threat skills as parallel Task agents reading discovery.json: threat-auto-execution, threat-network-exfil, threat-remote-code-execution, threat-credential-access, threat-obfuscation, threat-repo-write, threat-prompt-injection
+  6. Show combined findings and ask clone or cancel
+  Do NOT just read the hook files yourself. You MUST run the threat skills as Task agents.
 - If "Clone anyway": Run `git clone https://github.com/OWNER/REPO`
 - If "Cancel": Say "Clone cancelled."
 
