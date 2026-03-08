@@ -60,7 +60,7 @@ Based on quick scan results, offer the user a choice:
 Only proceed here if the user asks for more detail.
 
 **CRITICAL RULES — READ BEFORE DOING ANYTHING:**
-- **NEVER clone to /tmp/**. Clone to `$HOME/.repovet/cache/github.com/<owner>/<repo>/repo/`
+- **NEVER clone to /tmp/**. Clone to `/home/shapor/.repovet/cache/github.com/<owner>/<repo>/repo/`
 - **NEVER `rm -rf` any clone.** Clones are cached and reused.
 - **NEVER re-extract data that already exists.** Check `[ -f file ]` first.
 - **NEVER run `rm -rf /tmp/repovet-*`**. There is no cleanup step. Data persists.
@@ -70,8 +70,8 @@ Only proceed here if the user asks for more detail.
 Everything for a repo lives under one directory. The clone persists here too.
 
 ```bash
-CACHE=$HOME/.repovet/cache/github.com/<owner>/<repo>
-mkdir -p "$CACHE"
+CACHE=/home/shapor/.repovet/cache/github.com/<owner>/<repo>
+mkdir -p "/home/shapor/.repovet/cache/github.com/OWNER/REPO"
 ```
 
 ### Step 2: Clone (or reuse existing clone)
@@ -79,16 +79,16 @@ mkdir -p "$CACHE"
 **Always check if the clone already exists before cloning again.**
 
 ```bash
-if [ -d "$CACHE/repo" ]; then
+if [ -d "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo" ]; then
     echo "Clone already exists, pulling latest..."
-    git -C "$CACHE/repo" pull --ff-only 2>/dev/null || true
+    git -C "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo" pull --ff-only 2>/dev/null || true
 else
-    gh repo clone <owner/repo> "$CACHE/repo" 2>&1 || git clone <url> "$CACHE/repo"
+    gh repo clone <owner/repo> "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo" 2>&1 || git clone <url> "/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo"
 fi
-REPO_PATH="$CACHE/repo"
+REPO_PATH="/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo"
 ```
 
-The clone lives at `$CACHE/repo/` — NOT in `/tmp/`. Never delete it.
+The clone lives at `/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/` — NOT in `/tmp/`. Never delete it.
 
 ### Step 3: Extract Data (skip if already cached)
 
@@ -97,23 +97,23 @@ the user asks to refresh or if the repo was just pulled.
 
 ```bash
 # Git history — skip if commits.csv already exists
-if [ ! -f "$CACHE/commits.csv" ]; then
-    .venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "$CACHE/commits.csv"
+if [ ! -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv" ]; then
+    .venv/bin/python scripts/git-history-to-csv.py "$REPO_PATH" -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv"
 fi
 
 # Config discovery — always re-run (fast and catches changes)
-.venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "$CACHE/discovery.json"
+.venv/bin/python scripts/repovet-config-discover.py "$REPO_PATH" -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json"
 
 # GitHub PRs and issues — skip if already cached, run in background
-if [ ! -f "$CACHE/prs.csv" ]; then
-    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs -o "$CACHE/prs.csv" &
+if [ ! -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/prs.csv" ]; then
+    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --prs -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/prs.csv" &
 fi
-if [ ! -f "$CACHE/issues.csv" ]; then
-    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --issues -o "$CACHE/issues.csv" &
+if [ ! -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/issues.csv" ]; then
+    .venv/bin/python scripts/github-to-csv.py "$REPO_PATH" --issues -o "/home/shapor/.repovet/cache/github.com/OWNER/REPO/issues.csv" &
 fi
 ```
 
-To force a full refresh: `rm "$CACHE"/*.csv && rm "$CACHE"/*.json`
+To force a full refresh: `rm "/home/shapor/.repovet/cache/github.com/OWNER/REPO"/*.csv && rm "/home/shapor/.repovet/cache/github.com/OWNER/REPO"/*.json`
 
 ### Step 2: Run Analytics
 
@@ -123,7 +123,7 @@ Use DuckDB directly on the CSVs. Run queries based on what the user wants to kno
 ```bash
 scripts/repovet-query --markdown "
 SELECT author_name, COUNT(*) as commits, SUM(insertions) as lines_added
-FROM '$CACHE/commits.csv'
+FROM '/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv'
 GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
 ```
 
@@ -132,14 +132,14 @@ GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
 scripts/repovet-query --markdown "
 SELECT strftime(author_date::TIMESTAMPTZ, '%Y-%m') AS month,
        COUNT(*) AS commits, COUNT(DISTINCT author_name) AS authors
-FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 1"
+FROM '/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv' GROUP BY 1 ORDER BY 1"
 ```
 
 **Bus factor:**
 ```bash
 scripts/repovet-query --markdown "
 WITH recent AS (
-    SELECT author_name, COUNT(*) AS c FROM '$CACHE/commits.csv'
+    SELECT author_name, COUNT(*) AS c FROM '/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv'
     WHERE author_date::TIMESTAMPTZ >= NOW() - INTERVAL '6 months'
     GROUP BY 1 ORDER BY c DESC
 ),
@@ -154,7 +154,7 @@ SELECT author_name, c as commits FROM cumul WHERE running - c < total * 0.8"
 **Tell the user to press ctrl+o to expand the output — it will be collapsed by default.**
 
 ```bash
-.venv/bin/python scripts/repovet-display.py "$CACHE/commits.csv"
+.venv/bin/python scripts/repovet-display.py "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv"
 ```
 
 This produces a GitHub-style contribution heatmap, colored contributor bar charts,
@@ -166,7 +166,7 @@ visual display with contribution heatmap, charts, and sparklines."
 
 **Full markdown report (alternative):**
 ```bash
-.venv/bin/python scripts/repovet-analyze.py "$CACHE/commits.csv"
+.venv/bin/python scripts/repovet-analyze.py "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv"
 ```
 
 **For ALL follow-up data questions (language breakdown, author stats, LOC, etc.)
@@ -176,7 +176,7 @@ use the `duckdb` CLI directly. NEVER write Python to parse CSVs.**
 # Example: language breakdown for a specific author
 scripts/repovet-query --markdown "
 SELECT key AS language, SUM(CAST(value->>'ins' AS INT)) AS lines_added
-FROM read_csv_auto('$CACHE/commits.csv'),
+FROM read_csv_auto('/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv'),
 LATERAL (SELECT UNNEST(from_json(lang_stats, '{\"a\":{\"ins\":0,\"dels\":0}}')) )
 WHERE author_name = 'AuthorName' AND lang_stats != '{}'
 GROUP BY 1 ORDER BY 2 DESC"
@@ -195,7 +195,7 @@ Launch threat analysis skills in parallel as Task agents:
 - `threat-obfuscation` — decode any encoded payloads
 - `threat-prompt-injection` — analyze instruction override patterns
 
-Each reads `$CACHE/discovery.json` and produces detailed findings with
+Each reads `/home/shapor/.repovet/cache/github.com/OWNER/REPO/discovery.json` and produces detailed findings with
 file paths, line numbers, and explanations.
 
 ### Step 4: Final Report
@@ -225,7 +225,7 @@ Synthesize all findings into a trust report:
 <numbered actionable steps>
 ```
 
-Write to `$CACHE/trust-report.md` and present key findings to the user.
+Write to `/home/shapor/.repovet/cache/github.com/OWNER/REPO/trust-report.md` and present key findings to the user.
 
 ## Trust Score
 
@@ -251,7 +251,7 @@ Else:                  trust = 0.4*health + 0.3*security + 0.3*config_safety
 Everything for a repo lives in one place:
 
 ```
-$HOME/.repovet/cache/github.com/<owner>/<repo>/
+/home/shapor/.repovet/cache/github.com/<owner>/<repo>/
 ├── repo/              ← persistent clone (NEVER delete)
 ├── commits.csv        ← extracted once, reused
 ├── prs.csv            ← extracted once, reused
@@ -261,18 +261,18 @@ $HOME/.repovet/cache/github.com/<owner>/<repo>/
 ```
 
 **Rules:**
-- Clone lives in `$CACHE/repo/`, NOT `/tmp/`. Never delete it.
+- Clone lives in `/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/`, NOT `/tmp/`. Never delete it.
 - Before extracting, check if the file exists. Skip if cached.
 - Re-running on same repo is fast because data is cached.
-- User can `rm $HOME/.repovet/cache/github.com/owner/repo/*.csv` to force refresh.
+- User can `rm /home/shapor/.repovet/cache/github.com/owner/repo/*.csv` to force refresh.
 
 ## Common Pitfalls
 
 - **Always start with Phase 1** (quick scan). Never clone first.
 - **Never auto-proceed to Phase 2**. Let the user decide.
 - **Never execute discovered code**. Read and analyze only.
-- **Never delete the clone** (`$CACHE/repo/`). User may want it later.
-- **Never re-extract if cached**. Check `[ -f "$CACHE/commits.csv" ]` first.
-- **Never clone to /tmp/**. Always clone to `$CACHE/repo/`.
+- **Never delete the clone** (`/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/`). User may want it later.
+- **Never re-extract if cached**. Check `[ -f "/home/shapor/.repovet/cache/github.com/OWNER/REPO/commits.csv" ]` first.
+- **Never clone to /tmp/**. Always clone to `/home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/`.
 - **Use DuckDB CLI directly** for queries, not Python wrappers.
 - **Watch for nested configs** — `is_nested: true` in discovery.json signals hidden intent.

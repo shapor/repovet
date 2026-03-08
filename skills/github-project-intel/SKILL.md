@@ -36,19 +36,19 @@ The script lives at `scripts/github-to-csv.py` relative to the skillathon projec
 ### Export PRs from current repo
 
 ```bash
-.venv/bin/python scripts/github-to-csv.py --prs -o $HOME/.repovet/cache/{repo-name}/prs.csv
+.venv/bin/python scripts/github-to-csv.py --prs -o /home/shapor/.repovet/cache/{repo-name}/prs.csv
 ```
 
 ### Export issues from current repo
 
 ```bash
-.venv/bin/python scripts/github-to-csv.py --issues -o $HOME/.repovet/cache/{repo-name}/issues.csv
+.venv/bin/python scripts/github-to-csv.py --issues -o /home/shapor/.repovet/cache/{repo-name}/issues.csv
 ```
 
 ### Export both (output splits into two files automatically)
 
 ```bash
-.venv/bin/python scripts/github-to-csv.py --prs --issues -o $HOME/.repovet/cache/{repo-name}/data.csv
+.venv/bin/python scripts/github-to-csv.py --prs --issues -o /home/shapor/.repovet/cache/{repo-name}/data.csv
 ```
 
 This produces `data_prs.csv` and `data_issues.csv`.
@@ -58,7 +58,7 @@ This produces `data_prs.csv` and `data_issues.csv`.
 ```bash
 .venv/bin/python scripts/github-to-csv.py --prs --issues \
     --repo owner/repo-name \
-    -o $HOME/.repovet/cache/github.com/owner/repo-name/data.csv
+    -o /home/shapor/.repovet/cache/github.com/owner/repo-name/data.csv
 ```
 
 ### Multiple repos
@@ -82,8 +82,8 @@ The script auto-detects the GitHub remote from the git origin URL.
 Store output in the RepoVet cache:
 
 ```
-$HOME/.repovet/cache/github.com/{owner}/{repo}/prs.csv
-$HOME/.repovet/cache/github.com/{owner}/{repo}/issues.csv
+/home/shapor/.repovet/cache/github.com/{owner}/{repo}/prs.csv
+/home/shapor/.repovet/cache/github.com/{owner}/{repo}/issues.csv
 ```
 
 ## CSV Fields
@@ -181,7 +181,7 @@ Assess a repo's project health:
 ```
 1. Run: .venv/bin/python scripts/github-to-csv.py --prs --issues \
        --repo owner/repo \
-       -o $HOME/.repovet/cache/github.com/owner/repo/data.csv
+       -o /home/shapor/.repovet/cache/github.com/owner/repo/data.csv
 2. This produces data_prs.csv and data_issues.csv
 3. Pass prs.csv to repo-health-analysis skill (review culture metrics)
 4. Pass issues.csv to repo-health-analysis skill (responsiveness metrics)
