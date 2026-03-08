@@ -58,16 +58,6 @@ $ claude code .</code></pre>
                 </p>
             </section>
 
-            <!-- The Catch-22 -->
-            <section>
-                <h2>The Catch-22</h2>
-                <div style="margin-top: 60px;">
-                    <p style="font-size: 1.1em;" class="fragment">❌ You can't inspect a repo without opening it</p>
-                    <p style="font-size: 1.1em; margin-top: 30px;" class="fragment">❌ But opening it means you've already trusted it</p>
-                    <p style="font-size: 1.3em; margin-top: 60px; color: #e7ad52;" class="fragment"><strong>You're trapped.</strong></p>
-                </div>
-            </section>
-
             <!-- The Attack Surface -->
             <section>
                 <h2>The Attack Surface</h2>
@@ -184,6 +174,36 @@ $ claude code .</code></pre>
                     <li>3 analysis skills (contributors, health, security)</li>
                     <li>1 orchestrator (repo-trust-assessment)</li>
                 </ul>
+            </section>
+
+            <!-- Skill Overview -->
+            <section>
+                <h2>15 Skills</h2>
+                <div style="font-size: 0.55em; text-align: left; columns: 2; column-gap: 40px; margin-top: 20px;">
+                    <p style="margin-bottom: 8px; color: #5cb85c;"><strong>Orchestration &amp; Safety</strong></p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/repo-trust-assessment/SKILL.md">repo-trust-assessment</a> — top-level trust scorer</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/safe-clone/SKILL.md">safe-clone</a> — scan before cloning</p>
+
+                    <p style="margin-bottom: 8px; margin-top: 16px; color: #5cb85c;"><strong>Data Extraction</strong></p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/git-commit-intel/SKILL.md">git-commit-intel</a> — commits to CSV</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/github-project-intel/SKILL.md">github-project-intel</a> — PRs/issues to CSV</p>
+
+                    <p style="margin-bottom: 8px; margin-top: 16px; color: #5cb85c;"><strong>Analysis</strong></p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/git-analytics-sql/SKILL.md">git-analytics-sql</a> — DuckDB queries</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/contributor-analysis/SKILL.md">contributor-analysis</a> — who built this?</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/repo-health-analysis/SKILL.md">repo-health-analysis</a> — velocity, reviews</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/security-history-analysis/SKILL.md">security-history-analysis</a> — CVEs, secrets</p>
+
+                    <p style="margin-bottom: 8px; margin-top: 16px; color: #d9534f;"><strong>Threat Detection (7)</strong></p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-auto-execution/SKILL.md">threat-auto-execution</a> — hooks that run without approval</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-network-exfil/SKILL.md">threat-network-exfil</a> — data sent externally</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-remote-code-execution/SKILL.md">threat-remote-code-execution</a> — curl|bash patterns</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-credential-access/SKILL.md">threat-credential-access</a> — reads secrets/tokens</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-obfuscation/SKILL.md">threat-obfuscation</a> — encoded payloads</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-repo-write/SKILL.md">threat-repo-write</a> — force-push, rm -rf</p>
+                    <p style="margin: 4px 0;"><a href="https://github.com/shapor/repovet/blob/main/skills/threat-prompt-injection/SKILL.md">threat-prompt-injection</a> — instruction hijacking</p>
+                </div>
+                <p style="margin-top: 20px; font-size: 0.7em; opacity: 0.7;">Each link goes to the full SKILL.md on GitHub</p>
             </section>
 
             <!-- Demo Transition -->
@@ -404,17 +424,18 @@ Recommendation: <span class="score-low">DO NOT TRUST</span>
                 <p style="font-size: 0.9em; margin-top: 10px;">Before any code executed.</p>
             </section>
 
-            <!-- Integration Points -->
+            <!-- More Than Security -->
             <section>
-                <h2>Where This Integrates</h2>
-                <div style="font-size: 0.9em; margin-top: 40px;">
-                    <p class="fragment"><strong>1. Sundial Hub</strong> — trust scores on every skill listing</p>
-                    <p class="fragment"><strong>2. Claude Code</strong> — show RepoVet results in trust prompt</p>
-                    <p class="fragment"><strong>3. safe-clone skill</strong> — automatic scanning before clone</p>
-                    <p class="fragment"><strong>4. Git wrapper</strong> — <code>git clone</code> runs RepoVet first</p>
-                    <p class="fragment"><strong>5. Browser extension</strong> — badges on GitHub repo pages</p>
-                    <p style="margin-top: 40px; font-size: 1.1em;" class="fragment">
-                        <strong>Security infrastructure the ecosystem needs.</strong>
+                <h2>More Than Security</h2>
+                <div style="font-size: 0.95em; margin-top: 40px;">
+                    <p class="fragment"><strong>Trust is not just "is it malicious?"</strong></p>
+                    <p class="fragment" style="margin-top: 30px;">Is this repo abandoned? Who actually maintains it?</p>
+                    <p class="fragment">Was that recent commit a feature or a security patch?</p>
+                    <p class="fragment">Is there one person or a team? What's the bus factor?</p>
+                    <p class="fragment" style="margin-top: 30px;">When you <code>git clone</code>, you lose the GitHub page.</p>
+                    <p class="fragment">No heatmap. No contributor graph. No issue history.</p>
+                    <p class="fragment" style="margin-top: 30px; font-size: 1.1em; color: #5cb85c;">
+                        <strong>RepoVet gives your agent the context you'd get from browsing GitHub</strong> — contributor history, velocity, code provenance — as structured data it can reason about.
                     </p>
                 </div>
             </section>
@@ -471,9 +492,9 @@ Recommendation: <span class="score-low">DO NOT TRUST</span>
             <section>
                 <h2>What's Next?</h2>
                 <div style="margin-top: 40px;">
-                    <p class="fragment"><strong>Short-term:</strong> Git wrapper + browser extension</p>
-                    <p class="fragment"><strong>Medium-term:</strong> Pitch to Sundial Hub (Belinda)</p>
-                    <p class="fragment"><strong>Long-term:</strong> Integrate into Claude Code (Bence)</p>
+                    <p class="fragment"><strong>Portability:</strong> Remove hardcoded paths (needed to avoid Claude Code permission prompts)</p>
+                    <p class="fragment"><strong>Integration:</strong> Git wrapper, Sundial Hub trust scores, Claude Code trust prompt</p>
+                    <p class="fragment"><strong>Coverage:</strong> Scan Dockerfiles, CI configs, package.json scripts</p>
                     <p style="margin-top: 60px; font-size: 1.2em;" class="fragment">
                         <strong>Goal:</strong> Security infrastructure before the first supply chain attack.
                     </p>

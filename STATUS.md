@@ -8,7 +8,7 @@
 
 **"Should I trust this repo?"** — Trust assessment for code repositories.
 
-**Status**: 95% complete. Core implementation done, Harbor task built and validated, ready for evaluation.
+**Status**: Core implementation done, Harbor task built, safe-clone skill fixed. Ready for evaluation.
 
 ### What It Does
 
@@ -38,9 +38,9 @@ If config safety score < 5, it dominates the overall trust score (60% weight).
 | `scripts/git-history-to-csv.py` | DONE | 505 | Git commits -> CSV (authors, languages, file stats, PR enrichment) |
 | `scripts/github-to-csv.py` | DONE | 491 | GitHub PRs + issues -> CSV via GraphQL (reviews, bot detection, timing) |
 
-### Skills (22 total: 14 RepoVet + 8 Judge)
+### Skills (23 total: 15 RepoVet + 8 Judge)
 
-#### RepoVet Skills (14)
+#### RepoVet Skills (15)
 
 | Skill | Tier | Status | Purpose |
 |-------|------|--------|---------|
@@ -57,6 +57,7 @@ If config safety score < 5, it dominates the overall trust score (60% weight).
 | `threat-obfuscation` | Threat Detection | DONE | Base64, hex-encoded commands |
 | `threat-repo-write` | Threat Detection | DONE | git force-push, rm -rf |
 | `threat-prompt-injection` | Threat Detection | DONE | "Ignore previous instructions" |
+| `safe-clone` | Safety | DONE | Scans before cloning, offers deep dive with 7 threat agents |
 | `repo-trust-assessment` | Orchestrator | DONE | Runs everything, calculates trust score |
 
 #### Judge Panel Skills (8)
@@ -122,12 +123,11 @@ borderline-repo: 3 config files, 0 executables, 0 nested, 3 permissions
 
 ## What's NOT Done
 
-| Item | Priority | Time Estimate | Notes |
-|------|----------|--------------|-------|
-| End-to-end eval (with/without skills) | HIGH | 1 hour | Proves the delta for judges |
-| Harbor task integration testing | MEDIUM | 30 min | Test with actual Harbor CLI |
-| Presentation/demo script | MEDIUM | 30 min | What to say, what to show |
-| Publish skills to Sundial Hub | LOW | 30 min | `npx sundial-hub add` |
+| Item | Priority | Notes |
+|------|----------|-------|
+| End-to-end eval (with/without skills) | HIGH | Proves the delta for judges |
+| Harbor task integration testing | MEDIUM | Test with actual Harbor CLI |
+| Publish skills to Sundial Hub | LOW | `npx sundial-hub add` |
 
 ---
 
@@ -224,6 +224,9 @@ skillathon/
 │       ├── find/SKILL.md
 │       └── skill/SKILL.md (+ references/, scripts/)
 │
+├── SKILL-FIX-BRIEF.md                    safe-clone debugging notes
+├── demo-slides.html                      Reveal.js presentation
+│
 └── src/                                   Cloned reference repos
     ├── harbor/
     ├── anthropic-skills/
@@ -283,6 +286,10 @@ python3 scripts/repovet-analyze.py
 
 ## Next Actions (In Priority Order)
 
-1. **Build Harbor task** — Need this to prove delta for judges
-2. **Run end-to-end eval** — With and without skills
-3. **Prep demo** — Know what to show, what to say
+1. **Run end-to-end eval** — With and without skills, prove the delta
+2. **Test Harbor task** — With actual Harbor CLI
+3. **Publish to Sundial Hub** — If time permits
+
+## Post-Hackathon Cleanup
+
+- **Remove hardcoded `/home/shapor` paths** — Skills and scripts use absolute paths everywhere because `~`, `$HOME`, and shell variables trigger Claude Code permission prompts without `--dangerously-skip-permissions`. Post-hackathon, make paths relative or use a config file.
