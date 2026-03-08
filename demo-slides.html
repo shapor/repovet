@@ -317,18 +317,32 @@ Clone to workspace anyway? [y/N]</code></pre>
 
             <!-- Skill Delta -->
             <section>
-                <h2>Measured Impact</h2>
-                <div style="margin-top: 40px;">
-                    <p><strong>Harbor test suite:</strong> 8 pytest validations</p>
-                    <ul style="font-size: 0.9em; margin-top: 20px;">
-                        <li>Oracle solution: <span class="score-high">100% pass (8/8)</span></li>
-                        <li>Reward value: <span class="score-high">1.0</span></li>
-                        <li>Docker environment: ✅ Working</li>
-                    </ul>
-                    <p style="margin-top: 40px;"><strong>Without RepoVet skills:</strong> <span class="score-low">0% (clones blindly)</span></p>
-                    <p style="margin-top: 20px;"><strong>With RepoVet skills:</strong> <span class="score-high">100% (warns first)</span></p>
-                    <p style="margin-top: 40px; font-size: 1.3em; color: #5cb85c;">
-                        <strong>+100pp skill delta</strong>
+                <h2>Harbor Benchmark Results</h2>
+                <div style="margin-top: 30px;">
+                    <pre class="terminal" style="font-size: 0.45em;"><code>$ harbor run --path harbor-task/repovet-trust-assessment --agent oracle
+  1/1 Mean: 1.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┓
+┃ Metric              ┃ Value  ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━┩
+│ Agent               │ oracle │
+│ Mean                │ <span class="score-high">1.000</span>  │
+│   reward = 1.0      │ 1      │
+└─────────────────────┴────────┘
+
+$ harbor run --path harbor-task/repovet-trust-assessment --agent claude-code -m anthropic/claude-sonnet-4-6
+  1/1 Mean: 0.000 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric              ┃ Value                           ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Agent               │ claude-code (claude-sonnet-4-6) │
+│ Mean                │ <span class="score-low">0.000</span>                           │
+│   reward = 0.0      │ 1                               │
+└─────────────────────┴─────────────────────────────────┘</code></pre>
+                    <p style="margin-top: 30px; font-size: 1.5em; color: #5cb85c;">
+                        <strong>Skill delta: +100pp</strong>
+                    </p>
+                    <p style="font-size: 0.7em; margin-top: 10px; opacity: 0.7;">
+                        Full results: <code>jobs/2026-03-07__18-31-09/</code> and <code>jobs/2026-03-07__18-32-05/</code>
                     </p>
                 </div>
             </section>
