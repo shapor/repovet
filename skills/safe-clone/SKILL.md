@@ -7,211 +7,44 @@ description: >
   "get the code from", or any variant of cloning/downloading a repo.
 ---
 
-# Safe Clone — RepoVet-Protected Git Cloning
+# Safe Clone
 
-## What This Does
+Scan a repo with RepoVet BEFORE cloning it.
 
-Before cloning any GitHub repository, this skill:
-1. Scans it with RepoVet (no clone, via GitHub API)
-2. Shows trust score and threat findings
-3. Asks user if they want to proceed
-4. Only clones if user approves
+## Step 1: Scan
 
-**This prevents malicious repos from executing hooks before you can inspect them.**
-
-## When to Use
-
-Trigger this skill whenever the user wants to clone a repository:
-- "clone https://github.com/user/repo"
-- "git clone that repo"
-- "get the code from github.com/user/repo"
-- "download this project"
-- "I want to try out this tool"
-
-## Workflow
-
-### Step 1: Parse the GitHub URL
-Extract owner/repo from user input. Accept formats:
-- `https://github.com/owner/repo`
-- `github.com/owner/repo`
-- `owner/repo`
-
-### Step 2: Run RepoVet Scan
-
-Run this exact command (replace owner/repo with actual values):
 ```bash
-/home/shapor/src/skillathon/.venv/bin/python /home/shapor/src/skillathon/scripts/repovet.py scan owner/repo
+/home/shapor/src/skillathon/.venv/bin/python /home/shapor/src/skillathon/scripts/repovet.py scan OWNER/REPO
 ```
 
-Do NOT search for repovet.py. It is at `/home/shapor/src/skillathon/scripts/repovet.py`. Just run it.
+## Step 2: Present results and ask user
 
-### Step 3: Show Results and Ask User
+After showing the trust score and findings, use AskUserQuestion to ask the user what to do.
 
-Parse the RepoVet output and present it clearly to the user.
+If score >= 7: offer "Clone" and "Cancel".
 
-**If score >= 7 (safe):**
-Show 2 options:
-1. Yes, clone it
-2. No, cancel
+If score < 7: offer EXACTLY these 3 options in this order:
+1. "Deep dive" — "Clone to cache, run threat analysis agents to inspect what the code actually does before you decide"
+2. "Clone anyway" — "Clone despite findings"
+3. "Cancel" — "Do not clone"
 
-**If score < 7 (threats detected):**
+DO NOT skip this question. DO NOT auto-proceed. DO NOT read files instead of asking.
 
-**YOU MUST show EXACTLY 3 options using AskUserQuestion. NOT 2. THREE options:**
+## Step 3a: If user picks "Deep dive"
 
-1. **Deep dive analysis** — Clone to cache, run all 10 threat detection agents in parallel to analyze exactly what the malicious code does. This is the most useful option for the user.
-2. **Clone anyway** — Clone despite the security findings.
-3. **Cancel** — Do not clone.
+Use the repo-trust-assessment skill to do a full Phase 2 deep dive:
+- Clone to /home/shapor/.repovet/cache/github.com/OWNER/REPO/repo/
+- Extract commits, run config discovery
+- Run all threat detection skills in parallel
+- Show the visual display
+- Then ask again: clone to workspace or cancel?
 
-**The "Deep dive analysis" option MUST be the FIRST option** because it's the most useful when threats are found. The user wants to understand WHAT the threats do before deciding.
+## Step 3b: If user picks "Clone anyway"
 
-Use AskUserQuestion with these exact labels:
-- "Deep dive analysis" (description: "Clone to cache, run 10 threat analysis agents to inspect what the hooks/scripts actually do")
-- "Clone anyway" (description: "Clone despite findings — hooks will be present")
-- "Cancel" (description: "Do not clone")
-
-### Step 4a: Clone
-
-**If user chooses "Yes, clone it":**
 ```bash
-git clone https://github.com/owner/repo
+git clone https://github.com/OWNER/REPO
 ```
 
-### Step 4b: Deep Dive Analysis
+## Step 3c: If user picks "Cancel"
 
-**If user chooses "Deep dive analysis":**
-
-1. Clone repo to temp location (RepoVet already did this, use the cache at `~/.repovet/cache/owner-repo/`)
-
-2. Run the relevant threat detection skills based on what RepoVet found:
-   - If "Auto-execution hook" detected → `/skill threat-auto-execution ~/.repovet/cache/owner-repo/`
-   - If "Network exfiltration" detected → `/skill threat-network-exfil ~/.repovet/cache/owner-repo/`
-   - If "Credential access" detected → `/skill threat-credential-access ~/.repovet/cache/owner-repo/`
-   - If "Remote code execution" detected → `/skill threat-remote-code-execution ~/.repovet/cache/owner-repo/`
-   - If "Obfuscation" detected → `/skill threat-obfuscation ~/.repovet/cache/owner-repo/`
-   - If "Prompt injection" detected → `/skill threat-prompt-injection ~/.repovet/cache/owner-repo/`
-
-3. Show the detailed threat analysis to the user
-
-4. Ask again: "Clone to your workspace anyway? [y/N]"
-   - If yes → `git clone https://github.com/owner/repo`
-   - If no → done
-
-### Step 4c: Cancel
-
-**If user chooses "No, cancel":**
-
-```
-Clone cancelled. The repo was not downloaded.
-```
-
-## Example Interactions
-
-### Example 1: Safe Repo (DuckDB)
-
-**User:** "clone https://github.com/duckdb/duckdb"
-
-**Agent:**
-```
-🔍 Scanning with RepoVet...
-
-Trust Score: 10.0/10 — ✅ LOOKS GOOD
-
-• No agent config files detected
-• Established project (7+ years old)
-• Very popular (36k+ stars)
-• Active development
-• MIT license
-
-Safe to clone!
-```
-
----
-
-### Example 2: Risky Repo with Sandbox Inspect
-
-**User:** "clone https://github.com/shapor/helpful-dev-utils"
-
-**Agent:**
-```
-🔍 Scanning with RepoVet...
-
-Trust Score: 4.2/10 — ⚠️  REVIEW RECOMMENDED
-
-Key Findings:
-  • CRITICAL: Auto-execution hook (.claude/hooks/pre-command.sh)
-  • CRITICAL: Hook configuration (.claude/hooks/hooks.json)
-  • Created today, 0 stars, single maintainer
-
-What would you like to do?
-1. Clone normally (hooks will be present)
-2. Sandbox inspect first (see what hooks actually do)
-3. Cancel
-```
-
-**User chooses:** "Sandbox inspect first"
-
-**Agent:**
-```
-Cloning to sandbox: /tmp/repovet-sandbox-1234567890-helpful-dev-utils
-
-Reading hook files...
-
-📄 .claude/hooks/pre-command.sh analysis:
-
-What it does:
-  • POSTs to https://analytics.devtools-cdn.net/collect
-  • Sends: session ID, timestamp, tool name
-  • Runs in background with '&' (hidden from user)
-  • Would execute before EVERY Claude Code command
-
-Actual code:
-  curl -s -X POST "https://analytics.devtools-cdn.net/collect" \
-    -H "Content-Type: application/json" \
-    -d '{"session":"abc123","tool":"dev-utils","timestamp":"2026-03-07T23:45:12Z"}'
-
-⚠️  This sends data to a third-party analytics domain.
-
-Clone to your workspace anyway? [y/N]
-```
-
-**If user says 'n':**
-```
-Clone cancelled.
-Sandbox kept at: /tmp/repovet-sandbox-1234567890-helpful-dev-utils
-(You can review manually or delete it)
-```
-
-**If user says 'y':**
-```
-Cloning to: ./helpful-dev-utils/
-Warning: This repo contains hooks that may execute.
-Clone complete.
-Sandbox cleaned up.
-```
-
-## Anti-Patterns
-
-**DON'T:**
-- Clone before scanning (defeats the purpose)
-- Skip the scan if the repo "looks safe"
-- Auto-approve based on stars or age
-
-**DO:**
-- Always scan first, clone second
-- Show trust score even for "safe" repos
-- Let user make the final decision
-- Remind them about hooks if threats detected
-
-## Technical Notes
-
-- RepoVet scans via GitHub API (no clone needed)
-- Requires `gh` CLI to be authenticated
-- Falls back gracefully if RepoVet not found (warn user, then clone normally)
-- Works for public repos only (private repos need different handling)
-
-## Integration Points
-
-This skill demonstrates the RepoVet integration pattern. The same approach works for:
-- `/skill install` — scan before installing Sundial skills
-- Claude Code trust prompt — show RepoVet score
-- Git wrapper — `alias git='repovet-git'`
+Say "Clone cancelled."
