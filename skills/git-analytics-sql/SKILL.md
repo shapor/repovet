@@ -190,10 +190,17 @@ SQL
 ### Language breakdown
 ```bash
 scripts/repovet-query --markdown "
-SELECT key AS language, SUM(CAST(value->>'ins' AS INT)) AS insertions
-FROM (SELECT UNNEST(from_json(lang_stats, '{\"a\":{\"ins\":0,\"dels\":0}}')) FROM 'commits.csv'
-      WHERE lang_stats IS NOT NULL AND lang_stats != '{}')
-GROUP BY 1 ORDER BY 2 DESC"
+WITH base AS (
+    SELECT lang_stats FROM read_csv_auto('/full/path/to/commits.csv')
+    WHERE lang_stats IS NOT NULL AND lang_stats <> '{}'
+),
+exploded AS (
+    SELECT unnest(json_keys(lang_stats)) AS lang, lang_stats FROM base
+)
+SELECT lang AS language,
+       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.ins') AS INT)) AS lines_added,
+       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.dels') AS INT)) AS lines_removed
+FROM exploded GROUP BY lang ORDER BY lines_added + lines_removed DESC"
 ```
 
 ### PR review speed
@@ -238,17 +245,44 @@ GROUP BY 1, 2 ORDER BY
 
 ## DuckDB Tips
 
-- DuckDB auto-reads CSV files: just use `'file.csv'` as a table name
+- Reference CSVs with `read_csv_auto('/full/path/to/file.csv')` — always use full paths
 - Cast dates inline: `author_date::TIMESTAMPTZ`
 - `FILTER (WHERE ...)` on aggregates is cleaner than CASE WHEN
 - `MEDIAN()` is built-in
-- JSON: `->>'key'` for strings, `from_json()` + `UNNEST` for iteration
+- JSON: use `json_keys()` + `json_extract()` for parsing lang_stats/dir_stats
 - `strftime(ts, '%Y-%m')` for month grouping
-- `-markdown` flag gives markdown tables (great for piping to docs)
-- `is_merge` is a string ('True'/'False'), not boolean
+- `is_merge` column is a string — compare with `= 'True'` or `= 'False'` or `= false`
+
+## CRITICAL: Avoid Bash Escaping Issues
+
+**ALWAYS use `<>` instead of `!=`** in SQL. The `!=` operator gets escaped by bash:
+```sql
+-- WRONG (bash escapes the !):
+WHERE lang_stats <> '{}'
+
+-- CORRECT:
+WHERE lang_stats <> '{}'
+```
+
+**For JSON lang_stats parsing, use this exact pattern:**
+```bash
+scripts/repovet-query --markdown "
+WITH base AS (
+    SELECT lang_stats FROM read_csv_auto('/path/to/commits.csv')
+    WHERE lower(author_name) = 'someone' AND lang_stats <> '{}'
+),
+exploded AS (
+    SELECT unnest(json_keys(lang_stats)) AS lang, lang_stats FROM base
+)
+SELECT lang AS language,
+       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.ins') AS INT)) AS lines_added,
+       SUM(CAST(json_extract(lang_stats, '\$.' || lang || '.dels') AS INT)) AS lines_removed
+FROM exploded GROUP BY lang ORDER BY lines_added + lines_removed DESC"
+```
 
 ## Common Pitfalls
 
+- **NEVER use `!=`** — always use `<>` (bash escapes `!`)
+- **NEVER use `from_json()` + `UNNEST`** for lang_stats — use `json_keys()` + `json_extract()` instead
+- Always use full absolute paths in `read_csv_auto()`
 - Always run data extraction before querying
-- DuckDB snap can't read `/tmp/` — use local paths
-- For large repos, DuckDB handles millions of rows — no sampling needed
