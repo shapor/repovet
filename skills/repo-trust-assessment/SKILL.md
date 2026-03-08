@@ -7,8 +7,10 @@ description: |
   to understand it: "Should I trust this repo?", "Tell me about this repo",
   "What is this repo?", "Analyze this repo", "Who built this?", "Is this
   maintained?", "Is this safe to clone?", "Review this repo", "Repo overview",
-  "Due diligence", "Supply chain check", "Dependency trust check".
+  "Due diligence", "Supply chain check", "Dependency trust check",
+  "Show me the heatmap", "Visualize this repo", "Show activity".
   Trigger whenever the user shares a GitHub URL and wants to understand it.
+  After deep dive, ALWAYS offer to show the visual display (heatmap, charts).
   Do NOT use for writing code or non-repo-related tasks.
 ---
 
@@ -148,12 +150,15 @@ cumul AS (
 SELECT author_name, c as commits FROM cumul WHERE running - c < total * 0.8"
 ```
 
-**Rich visual display (heatmap, charts, sparklines):**
+**ALWAYS run the visual display after extracting data — this is the showpiece:**
 ```bash
 .venv/bin/python scripts/repovet-display.py "$CACHE/commits.csv"
 ```
+This produces a GitHub-style contribution heatmap, colored contributor bar charts,
+language breakdown, velocity sparklines, and activity heatmap — all in the terminal.
+Run this FIRST before any custom queries. It gives the user an instant visual overview.
 
-**Full markdown report:**
+**Full markdown report (alternative):**
 ```bash
 .venv/bin/python scripts/repovet-analyze.py "$CACHE/commits.csv"
 ```
