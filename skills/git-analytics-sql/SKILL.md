@@ -3,14 +3,14 @@ name: git-analytics-sql
 allowed-tools: Bash Read
 description: |
   Run SQL analytics against git commit history, PR, and issue data using DuckDB CLI.
-  IMPORTANT: Use duckdb CLI for ALL queries on repo data. NEVER write Python to parse CSVs.
+  IMPORTANT: Use scripts/repovet-query for ALL queries on repo data. NEVER write Python to parse CSVs.
   Trigger on ANY follow-up question about a repo after initial assessment: "breakdown by
   language", "LOC per author", "show contributors", "commit velocity", "who committed
   the most?", "what languages?", "bus factor", "analyze contributors", "PR review time",
   "compare authors", "show me the data", "lines of code", "breakdown for X", "filter by
   author", "monthly activity", "top files changed", any data question about a git repo.
   The CSV files are already cached at ~/.repovet/cache/github.com/<owner>/<repo>/.
-  Always use: duckdb -markdown -c "SELECT ... FROM read_csv_auto('path/to/commits.csv')"
+  Always use: scripts/repovet-query --markdown "SELECT ... FROM read_csv_auto('path/to/commits.csv')"
   NEVER use Python csv module or pandas. NEVER write inline Python scripts for data queries.
 ---
 
@@ -48,27 +48,27 @@ mkdir -p "$CACHE"
 
 ## Querying with DuckDB
 
-Use the `duckdb` CLI directly on the CSV files. DuckDB reads CSVs natively — just reference the path in SQL:
+Use `scripts/repovet-query` to run SQL on CSV files. It uses DuckDB under the hood. Just reference file paths in SQL with `read_csv_auto('path')`:
 
 ```bash
 CACHE=~/.repovet/cache/harbor
-duckdb -c "SELECT author_name, COUNT(*) as commits FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
+scripts/repovet-query "SELECT author_name, COUNT(*) as commits FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 10"
 ```
 
 ### Output Formats
 
 ```bash
 # Default: box table
-duckdb -c "QUERY"
+scripts/repovet-query "QUERY"
 
 # Markdown table
-duckdb -markdown -c "QUERY"
+scripts/repovet-query --markdown "QUERY"
 
 # CSV output
-duckdb -csv -c "QUERY"
+scripts/repovet-query --csv "QUERY"
 
 # JSON output
-duckdb -json -c "QUERY"
+scripts/repovet-query --json "QUERY"
 ```
 
 ### Multi-line Queries
@@ -76,7 +76,7 @@ duckdb -json -c "QUERY"
 For complex queries, use heredoc:
 
 ```bash
-duckdb -markdown <<'SQL'
+scripts/repovet-query --markdown "
 SELECT author_name, COUNT(*) as commits, SUM(insertions) as lines_added
 FROM 'commits.csv'
 GROUP BY 1
@@ -157,7 +157,7 @@ For a markdown report with health score:
 
 ### Top contributors
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT author_name, COUNT(*) AS commits,
        SUM(insertions) AS lines_added, SUM(deletions) AS lines_deleted
 FROM 'commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
@@ -165,7 +165,7 @@ FROM 'commits.csv' GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
 
 ### Monthly velocity
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT strftime(author_date::TIMESTAMPTZ, '%Y-%m') AS month,
        COUNT(*) AS commits, COUNT(DISTINCT author_name) AS authors
 FROM 'commits.csv' GROUP BY 1 ORDER BY 1"
@@ -173,7 +173,7 @@ FROM 'commits.csv' GROUP BY 1 ORDER BY 1"
 
 ### Bus factor (who owns 80% of recent work)
 ```bash
-duckdb -markdown <<'SQL'
+scripts/repovet-query --markdown "
 WITH recent AS (
     SELECT author_name, COUNT(*) AS c FROM 'commits.csv'
     WHERE author_date::TIMESTAMPTZ >= NOW() - INTERVAL '6 months'
@@ -189,7 +189,7 @@ SQL
 
 ### Language breakdown
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT key AS language, SUM(CAST(value->>'ins' AS INT)) AS insertions
 FROM (SELECT UNNEST(from_json(lang_stats, '{\"a\":{\"ins\":0,\"dels\":0}}')) FROM 'commits.csv'
       WHERE lang_stats IS NOT NULL AND lang_stats != '{}')
@@ -198,7 +198,7 @@ GROUP BY 1 ORDER BY 2 DESC"
 
 ### PR review speed
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT MEDIAN(pr_time_to_merge_hours::DOUBLE) AS median_merge_h,
        AVG(pr_first_review_hours::DOUBLE) AS avg_first_review_h,
        COUNT(*) FILTER (WHERE pr_state = 'MERGED') AS merged_prs
@@ -208,7 +208,7 @@ WHERE pr_time_to_merge_hours != ''"
 
 ### Security-related commits
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT commit_hash[:12] AS hash, author_name, author_date::DATE AS date, subject
 FROM 'commits.csv'
 WHERE LOWER(subject) SIMILAR TO '%(secur|cve|vuln|xss|inject|exploit)%'
@@ -217,7 +217,7 @@ ORDER BY author_date DESC"
 
 ### Author deep dive (hiring eval)
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT author_name, COUNT(*) AS commits, SUM(insertions) AS added,
        MIN(author_date)::DATE AS first, MAX(author_date)::DATE AS last
 FROM 'commits.csv' WHERE LOWER(author_name) LIKE '%alice%'
@@ -226,7 +226,7 @@ GROUP BY 1"
 
 ### Commit heatmap (day x hour)
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT dayname(author_date::TIMESTAMPTZ) AS day,
        EXTRACT(HOUR FROM author_date::TIMESTAMPTZ) AS hour_utc,
        COUNT(*) AS commits

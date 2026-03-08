@@ -119,7 +119,7 @@ Use DuckDB directly on the CSVs. Run queries based on what the user wants to kno
 
 **Contributor analysis:**
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT author_name, COUNT(*) as commits, SUM(insertions) as lines_added
 FROM '$CACHE/commits.csv'
 GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
@@ -127,7 +127,7 @@ GROUP BY 1 ORDER BY 2 DESC LIMIT 15"
 
 **Monthly velocity:**
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT strftime(author_date::TIMESTAMPTZ, '%Y-%m') AS month,
        COUNT(*) AS commits, COUNT(DISTINCT author_name) AS authors
 FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 1"
@@ -135,7 +135,7 @@ FROM '$CACHE/commits.csv' GROUP BY 1 ORDER BY 1"
 
 **Bus factor:**
 ```bash
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 WITH recent AS (
     SELECT author_name, COUNT(*) AS c FROM '$CACHE/commits.csv'
     WHERE author_date::TIMESTAMPTZ >= NOW() - INTERVAL '6 months'
@@ -163,7 +163,7 @@ use the `duckdb` CLI directly. NEVER write Python to parse CSVs.**
 
 ```bash
 # Example: language breakdown for a specific author
-duckdb -markdown -c "
+scripts/repovet-query --markdown "
 SELECT key AS language, SUM(CAST(value->>'ins' AS INT)) AS lines_added
 FROM read_csv_auto('$CACHE/commits.csv'),
 LATERAL (SELECT UNNEST(from_json(lang_stats, '{\"a\":{\"ins\":0,\"dels\":0}}')) )

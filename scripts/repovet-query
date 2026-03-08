@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# RepoVet SQL query wrapper — runs DuckDB via Python venv (avoids snap confinement issues)
+# Usage: repovet-query "SELECT * FROM read_csv_auto('path.csv') LIMIT 10"
+#        repovet-query --markdown "SELECT ..."
+#        repovet-query --json "SELECT ..."
+#        repovet-query --csv "SELECT ..."
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VENV_PYTHON="$SCRIPT_DIR/../.venv/bin/python"
+
+if [ ! -f "$VENV_PYTHON" ]; then
+    echo "Error: .venv not found. Run: python3 -m venv .venv && .venv/bin/pip install duckdb" >&2
+    exit 1
+fi
+
+FORMAT="table"
+SQL=""
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --markdown|-m) FORMAT="markdown"; shift ;;
+        --json|-j) FORMAT="json"; shift ;;
+        --csv|-c) FORMAT="csv"; shift ;;
+        *) SQL="$1"; shift ;;
+    esac
+done
+
+if [ -z "$SQL" ]; then
+    echo "Usage: repovet-query [--markdown|--json|--csv] \"SQL QUERY\"" >&2
+    exit 1
+fi
+
+exec "$VENV_PYTHON" -c "
+import duckdb, json, sys
+
+db = duckdb.connect(':memory:')
+result = db.execute('''$SQL''')
+cols = [d[0] for d in result.description]
+rows = result.fetchall()
+
+fmt = '$FORMAT'
+
+if not rows:
+    print('(no results)')
+elif fmt == 'json':
+    json.dump([dict(zip(cols, r)) for r in rows], sys.stdout, indent=2, default=str)
+    print()
+elif fmt == 'csv':
+    print(','.join(cols))
+    for r in rows:
+        print(','.join(str(v) if v is not None else '' for v in r))
+elif fmt == 'markdown':
+    widths = [max(len(c), max((len(str(r[i]) if r[i] is not None else '') for r in rows), default=0)) for i, c in enumerate(cols)]
+    print('| ' + ' | '.join(c.ljust(w) for c, w in zip(cols, widths)) + ' |')
+    print('|' + '|'.join('-' * (w + 2) for w in widths) + '|')
+    for r in rows:
+        print('| ' + ' | '.join((str(v) if v is not None else '').ljust(w) for v, w in zip(r, widths)) + ' |')
+else:
+    widths = [max(len(c), max((len(str(r[i]) if r[i] is not None else '') for r in rows), default=0)) for i, c in enumerate(cols)]
+    print('  '.join(c.ljust(w) for c, w in zip(cols, widths)))
+    print('  '.join('-' * w for w in widths))
+    for r in rows:
+        print('  '.join((str(v) if v is not None else '').ljust(w) for v, w in zip(r, widths)))
+"
