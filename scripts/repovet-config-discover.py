@@ -92,6 +92,9 @@ PERMISSION_KEYS = {
     "deny",
 }
 
+# Keys that identify a JSON file as Claude Code settings
+CLAUDE_SETTINGS_MARKERS = {"hooks", "permissions", "model", "enableAllProjectMcpServers"}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -184,6 +187,15 @@ def discover_files(repo_root: str) -> list[tuple[str, str]]:
             seen.add(abspath)
             results.append((abspath, config_type))
 
+    # Check for root-level settings.json that looks like Claude Code config
+    root_settings = os.path.join(repo_root, "settings.json")
+    root_settings_abs = os.path.realpath(root_settings)
+    if os.path.isfile(root_settings) and root_settings_abs not in seen:
+        data = safe_json_load(root_settings)
+        if data and isinstance(data, dict) and CLAUDE_SETTINGS_MARKERS & data.keys():
+            seen.add(root_settings_abs)
+            results.append((root_settings_abs, "claude_settings"))
+
     # Sort by relative path for deterministic output
     results.sort(key=lambda t: relative(repo_root, t[0]))
     return results
@@ -268,6 +280,78 @@ def extract_permissions(filepath: str, data: dict) -> list[dict]:
 
     walk(data)
     return perms
+
+
+def extract_hooks_from_settings(filepath: str, data: dict) -> list[dict]:
+    """Extract hook definitions from a Claude Code settings.json.
+
+    Returns executable entries for each hook command, resolving script paths
+    to files within the repo when possible.
+    """
+    hooks_config = data.get("hooks")
+    if not isinstance(hooks_config, dict):
+        return []
+
+    rel = relative(repo_root_global, filepath)
+    executables = []
+
+    for event_name, event_entries in hooks_config.items():
+        if not isinstance(event_entries, list):
+            continue
+        for entry in event_entries:
+            if not isinstance(entry, dict):
+                continue
+            matcher = entry.get("matcher", "*")
+            hook_list = entry.get("hooks", [])
+            if not isinstance(hook_list, list):
+                continue
+            for hook in hook_list:
+                if not isinstance(hook, dict):
+                    continue
+                command = hook.get("command", "")
+                if not command:
+                    continue
+
+                # Try to resolve the command to a file in the repo.
+                # Handles $HOME/.claude/hooks/foo.sh → hooks/foo.sh (repo IS .claude/)
+                # and $HOME/.claude/hooks/foo.sh → .claude/hooks/foo.sh
+                script_content = None
+                resolved_path = None
+                for prefix in ("$HOME/.claude/", "${HOME}/.claude/", "~/.claude/"):
+                    if command.startswith(prefix):
+                        repo_rel = command[len(prefix):]
+                        # Try as-is (repo IS .claude dir)
+                        candidate = os.path.join(repo_root_global, repo_rel)
+                        if os.path.isfile(candidate):
+                            resolved_path = repo_rel
+                            script_content = safe_read(candidate)
+                            break
+                        # Try under .claude/ (repo contains .claude dir)
+                        candidate = os.path.join(repo_root_global, ".claude", repo_rel)
+                        if os.path.isfile(candidate):
+                            resolved_path = os.path.join(".claude", repo_rel)
+                            script_content = safe_read(candidate)
+                            break
+
+                source_file = resolved_path or rel
+                lines = script_content.split("\n") if script_content else []
+                lang = detect_script_language(source_file, script_content or "")
+
+                executables.append({
+                    "source_file": source_file,
+                    "source_type": "hook",
+                    "language": lang,
+                    "content": script_content or f"# [unresolved command: {command}]",
+                    "line_start": 1,
+                    "line_end": len(lines) or 1,
+                    "is_nested": is_nested(source_file),
+                    "nested_depth": nested_depth(source_file),
+                    "hook_event": event_name,
+                    "hook_matcher": matcher,
+                    "hook_command": command,
+                })
+
+    return executables
 
 
 def extract_instruction(filepath: str, content: str, config_type: str) -> dict:
@@ -429,11 +513,12 @@ def scan_repo(repo_root: str) -> dict:
         if content is None:
             continue
 
-        # --- Extract permissions from JSON settings files ---
+        # --- Extract permissions and hooks from JSON settings files ---
         if config_type in ("claude_settings", "claude_settings_local"):
             data = safe_json_load(filepath)
             if data:
                 permissions.extend(extract_permissions(filepath, data))
+                executables.extend(extract_hooks_from_settings(filepath, data))
 
         # --- Extract instruction text ---
         if config_type in INSTRUCTION_TYPES:
